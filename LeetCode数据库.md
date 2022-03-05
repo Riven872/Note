@@ -156,3 +156,70 @@ ORDER BY rating DESC
 
 
 
+###### 627、变更性别
+
+**CASE WHEN函数、CASE WHEN表达式、IF函数、按条件更新表**
+
+​	1、CASE WHEN函数
+
+````sql
+UPDATE Salary
+SET sex = CASE sex
+			WHEN 'm'
+			THEN 'f'
+			ELSE 'm'
+			END 
+--CASE表示函数开始
+--sex WHEN 'm' THEN 'f'表示若sex = 'm'，则跳出该函数且返回'f'
+--ELSE表示上面所有条件都不成立时，返回'm'
+--END表示函数结束
+--可以多个WHEN THEN 并列，但当满足其中一个WHEN THEN时，立即跳出函数并返回值
+````
+
+​	2、CASE WHEN表达式
+
+````sql
+UPDATE Salary
+SET sex = CASE 
+			WHEN sex = 'f'
+			THEN 'm'
+			WHEN sex = 'm'
+			THEN 'f'
+			END
+--基本与上面的函数相同，但是WHEN后可以写表达式
+--也有ELSE，为了演示没写
+````
+
+​	3、IF函数
+
+````sql
+UPDATE Salary
+SET sex = 
+IF(sex = 'm', 'f', 'm')
+--IF(expr,v1,v2),如果表达式 expr 成立，返回结果 v1；否则，返回结果v2
+````
+
+###### 1179、重新格式化部门表
+
+**分组理解、CASE WHEN函数**
+
+​	分组后跟的字段要么是检索列，要么是聚合函数进行汇总列（因为聚合函数之后只会返回一个值，附加到分组中，若返回多个则没法分组）
+
+````sql
+SELECT id,
+	   sum(CASE month WHEN 'Jan' THEN revenue END) AS Jan_Revenue,
+	   sum(CASE month WHEN 'Feb' THEN revenue END) AS Feb_Revenue,
+	   sum(CASE month WHEN 'Mar' THEN revenue END) AS Mar_Revenue,
+	   sum(CASE month WHEN 'Apr' THEN revenue END) AS Apr_Revenue,
+	   sum(CASE month WHEN 'May' THEN revenue END) AS May_Revenue,
+	   sum(CASE month WHEN 'Jun' THEN revenue END) AS Jun_Revenue,
+	   sum(CASE month WHEN 'Jul' THEN revenue END) AS Jul_Revenue,
+	   sum(CASE month WHEN 'Aug' THEN revenue END) AS Aug_Revenue,
+	   sum(CASE month WHEN 'Sep' THEN revenue END) AS Sep_Revenue,
+	   sum(CASE month WHEN 'Oct' THEN revenue END) AS Oct_Revenue,
+	   sum(CASE month WHEN 'Nov' THEN revenue END) AS Nov_Revenue,
+	   sum(CASE month WHEN 'Dec' THEN revenue END) AS Dec_Revenue
+FROM Department
+GROUP BY id 
+````
+
