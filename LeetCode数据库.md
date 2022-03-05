@@ -2,7 +2,7 @@
 
 ###### 181、超过经理收入的员工
 
-内联，重新组合本表，on条件是关键。且该题目要求查询的是对应经理，而非所有经理，所以连接条件需要把员工和经理一一对应起来
+​	内联，重新组合本表，on条件是关键。且该题目要求查询的是对应经理，而非所有经理，所以连接条件需要把员工和经理一一对应起来
 
 ````sql
 SELECT a.name AS Employee
@@ -18,7 +18,7 @@ WHERE a.salary > b.salary
 
 **查找重复数据**
 
-进行分组，用count统计数量，用having进行分组数据的过滤
+​	进行分组，用count统计数量，用having进行分组数据的过滤
 
 ````sql
 SELECT Email
@@ -84,6 +84,74 @@ AND id NOT IN (SELECT a.id
 				        FROM Person
 				        GROUP BY email
 				        HAVING count(email) > 1)) a)
+````
+
+
+
+###### 197、上升的温度
+
+**利用DATEDIFF进行日期对比，并添加到连接表ON条件中。只有一张表而且要对比自身时，考虑自连接**
+
+
+
+````sql
+前参数减后参数
+mysql> SELECT DATEDIFF('2007-12-31 23:59:59','2007-12-30');
+        -> 1
+mysql> SELECT DATEDIFF('2010-11-30 23:59:59','2010-12-31');
+        -> -31
+````
+
+​	进行自连接，连接条件是主表的日期大于从表一天，把主表当成“今天”，从表当成“昨天”，因此选择的是主表.id，且主表的温度>从表的温度，才是今天的温度>昨天
+
+````sql
+SELECT a.id
+FROM Weather a
+INNER JOIN Weather b 
+ON DATEDIFF(a.recordDate, b.recordDate) = 1
+WHERE a.Temperature > b.Temperature
+````
+
+
+
+###### 595、大的国家
+
+​	基础题
+
+````sql
+SELECT name, population, area
+FROM World
+WHERE area >= 3000000
+OR population >= 25000000
+````
+
+
+
+###### 596、超过5名学生的课
+
+​	基础题
+
+````sql
+SELECT class
+FROM Courses
+GROUP BY class
+HAVING count(*) >= 5 
+````
+
+
+
+###### 620、有趣的电影
+
+**MOD函数，取模函数**
+
+​	基础题
+
+````sql
+SELECT id, movie, description, rating
+FROM cinema
+WHERE description != 'boring'
+AND mod(id, 2) = 1 --id%2，id对2取模，若id为奇数，则返回1，否则返回0
+ORDER BY rating DESC
 ````
 
 
