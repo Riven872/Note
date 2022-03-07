@@ -1,5 +1,18 @@
 ##### Easy
 
+###### 175、组合两个表
+
+左连接，不管左表有无数据，都展示搜索结果
+
+````sql
+SELECT a.FirstName, a.LastName, b.City, b.State
+FROM Person a
+LEFT JOIN Address b
+ON a.PersonId = b.PersonId
+````
+
+
+
 ###### 181、超过经理收入的员工
 
 ​	内联，重新组合本表，on条件是关键。且该题目要求查询的是对应经理，而非所有经理，所以连接条件需要把员工和经理一一对应起来
