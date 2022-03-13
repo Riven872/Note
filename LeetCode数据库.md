@@ -236,3 +236,34 @@ FROM Department
 GROUP BY id 
 ````
 
+
+
+##### Medium
+
+###### 176、第二高的薪水
+
+**第N大的数字**、**LIMIT OFFSET函数**、**IFNULL函数**、**分页思想**
+
+​	1、根据题目要求大小先排序，排序后利用LIMIT 进行分页
+
+````sql
+SELECT ifnull(
+			(SELECT DISTINCT salary
+			FROM Employee
+			ORDER BY Salary DESC
+			LIMIT 1,1), NULL) AS SecondHighestSalary
+--IFNULL函数，IFNULL(字段名,exp1) 若查出的该字段不为null，则返回该字段值，否则返回exp1
+--LIMIT函数，LIMIT N，取查出来的数据前N行。
+--OFFSET函数，LIMIT N OFFSET M，从M行起，取N行，若不足N行则取出剩余的，也可以简写为LIMIT N,M
+--注意：OFFSET是从第0行算起的，比如查出三条数据，那么OFFSET最大值为4，第一条数据下标为0
+````
+
+​	2、过滤掉最大值（仅限于求第二高或第二低情况）
+
+````sql
+SELECT max(salary) AS SecondHighestSalary 
+FROM Employee
+WHERE salary < (SELECT max(salary)
+				FROM Employee)
+````
+
