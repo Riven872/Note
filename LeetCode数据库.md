@@ -242,7 +242,7 @@ GROUP BY id
 
 ###### 176、第二高的薪水
 
-**第N大的数字**、**LIMIT OFFSET函数**、**IFNULL函数**、**分页思想**
+**第N大的数字**、**LIMIT OFFSET函数**、**IFNULL函数**、**分页思想**、**窗口函数RANK**
 
 ​	1、根据题目要求大小先排序，排序后利用LIMIT 进行分页
 
@@ -265,5 +265,28 @@ SELECT max(salary) AS SecondHighestSalary
 FROM Employee
 WHERE salary < (SELECT max(salary)
 				FROM Employee)
+````
+
+​	3、利用窗口函数进行排名
+
+````sql
+SELECT (SELECT salary
+		FROM (SELECT DISTINCT(salary),
+            RANK() OVER(
+			   		 	   ORDER BY salary DESC) AS rankdata
+            FROM Employee) AS temp
+		WHERE rankdata = 2) AS SecondHighestSalary
+--最内层SELECT，选择出salary和排名列
+--第二层SELECT,选择出排名第二的salary
+--最外层SELECT，如果不存在排名第二的，则返回NULL
+--注意：别名为temp表是为了解决MySQL每个查询表都要有别名的错误
+
+RANK() OVER(
+		PARTITION BY 字段名         --分组，但不会像GROUP BY
+		ORDER BY 字段名) AS 别名     --排序，正常ORDER BY使用规则
+RANK() OVER函数一般用在SELECT查询子句中
+
+专用窗口函数：rank()，dense_rank()，row_number()
+窗口函数也叫OLAP函数（Online Anallytical Processing,联机分析处理），可以对数据进行实时分析处理
 ````
 
