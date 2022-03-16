@@ -254,7 +254,7 @@ SELECT ifnull(
 			LIMIT 1,1), NULL) AS SecondHighestSalary
 --IFNULL函数，IFNULL(字段名,exp1) 若查出的该字段不为null，则返回该字段值，否则返回exp1
 --LIMIT函数，LIMIT N，取查出来的数据前N行。
---OFFSET函数，LIMIT N OFFSET M，从M行起，取N行，若不足N行则取出剩余的，也可以简写为LIMIT N,M
+--OFFSET函数，LIMIT N OFFSET M，从M行起，取N行，若不足N行则取出剩余的，也可以简写为LIMIT M,N
 --注意：OFFSET是从第0行算起的，比如查出三条数据，那么OFFSET最大值为4，第一条数据下标为0
 ````
 
@@ -288,5 +288,24 @@ RANK() OVER函数一般用在SELECT查询子句中
 
 专用窗口函数：rank()，dense_rank()，row_number()
 窗口函数也叫OLAP函数（Online Anallytical Processing,联机分析处理），可以对数据进行实时分析处理
+````
+
+###### 177、第N高的薪水
+
+**存储过程**、**自定义函数**、**LIMIT分页**
+
+````sql
+CREATE FUNCTION getNthHighestSalary(N INT) RETURNS INT
+BEGIN
+set N = N-1; --因为LIMIT是从第0行开始计算，而且LIMIT内不可以写表达式，因此在计算前就要将N-1的关系写出
+  RETURN (
+      # Write your MySQL query statement below.
+    SELECT ifnull(
+        (SELECT DISTINCT salary
+        FROM Employee
+        ORDER BY Salary DESC
+        LIMIT N,1), NULL) AS SecondHighestSalary
+);
+END
 ````
 
