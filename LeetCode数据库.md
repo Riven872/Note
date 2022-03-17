@@ -282,7 +282,7 @@ SELECT (SELECT salary
 --注意：别名为temp表是为了解决MySQL每个查询表都要有别名的错误
 
 RANK() OVER(
-		PARTITION BY 字段名         --分组，但不会像GROUP BY
+		PARTITION BY 字段名         --分组，但不会像GROUP BY一样进行聚合
 		ORDER BY 字段名) AS 别名     --排序，正常ORDER BY使用规则
 RANK() OVER函数一般用在SELECT查询子句中
 
@@ -307,5 +307,24 @@ set N = N-1; --因为LIMIT是从第0行开始计算，而且LIMIT内不可以写
         LIMIT N,1), NULL) AS SecondHighestSalary
 );
 END
+````
+
+###### 178、分数排名
+
+**窗口函数DENSE_RANK() OVER()**
+
+​	解题思路只需理解改窗口函数即可
+
+````sql
+# Write your MySQL query statement below
+SELECT score,
+DENSE_RANK() OVER(
+                ORDER BY score DESC) AS 'rank'
+FROM Scores
+
+注意:不同的窗口函数处理并列情况不同
+--RANK函数中，如果有并列的情况，会占用下一个数字。如：1,1,3,4,5,5,7
+--DENSE_RANK函数中，如果有并列的情况，不会占用下一个数字。如：1,1,2,3,4,5,5,6
+--ROW_NUMBER函数中，会忽略并列的情况。如:1,2,3,4,5,6,7
 ````
 
