@@ -364,3 +364,18 @@ FROM (SELECT b.name AS Department,
 WHERE num = 1 --组内第一，也可以变成某个组内前N
 ```
 
+###### 626、换座位
+
+**CASE WHEN表达式**、**SELECT简单数据交换**
+
+```sql
+SELECT (CASE 
+	   WHEN MOD(id, 2) != 0 AND num != id THEN id + 1 --id为奇数且不为最后一行
+	   WHEN MOD(id, 2) != 0 AND num = id THEN id --id为奇数且为最后一行
+	   ELSE id - 1 --只要为偶数，不管是不是最后一行，都-1
+	   END) AS id, student
+FROM seat, (SELECT count(*) AS num
+	  FROM Seat) as a --两张表通过笛卡尔积组合，因为count只有一列，所以组合起来比较简单
+ORDER BY id ASC
+```
+
