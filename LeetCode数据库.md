@@ -328,3 +328,39 @@ FROM Scores
 --ROW_NUMBER函数中，会忽略并列的情况。如:1,2,3,4,5,6,7
 ````
 
+###### 180、连续出现的数字
+
+**窗口函数ROW_NUMBER() over()**
+
+```sql
+SELECT DISTINCT Num AS ConsecutiveNums
+FROM (SELECT Num,Id,
+	  ROW_NUMBER() over(PARTITION BY Num ORDER BY Id) AS flag, --根据可能重复的数字进行分组，并根据主键排序
+      ROW_NUMBER() over(ORDER BY Id) as id2 --防止主键顺序不连续，造一个连续的列（如：1,2,4,7造成1,2,3,4）
+	  FROM Logs
+	  ORDER BY Id) AS a
+GROUP BY (a.Id2-a.flag), Num
+HAVING count(*) >= 3 -- 3是指连续几次
+
+--a.Id2-a.flag：造的主键列Id2是连续的，如果某个数字一直连续出现，那么ROW_NUMBER的排序也是连续的，那么a.Id2-a.flag是一直不变的，以此来判定是否连续
+--GROUP BY 连续数字 是防止特殊情况
+--HAVING count（）进行统计
+```
+
+###### 184、部门工资最高的员工
+
+**窗口函数RANK() OVER()组内排序**
+
+```sql
+SELECT Department, Employee, Salary
+FROM (SELECT b.name AS Department,
+		  	 a.name AS Employee,
+		  	 a.salary AS Salary,
+  	 RANK() OVER(PARTITION BY a.departmentId --按照部门进行排序
+  	 			 ORDER BY a.salary DESC) AS num
+	 FROM Employee a
+	 INNER JOIN Department b
+	 ON a.departmentId = b.id) AS t1
+WHERE num = 1 --组内第一，也可以变成某个组内前N
+```
+
