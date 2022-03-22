@@ -379,3 +379,33 @@ FROM seat, (SELECT count(*) AS num
 ORDER BY id ASC
 ```
 
+##### Hard
+
+###### 262、行程和用户
+
+**理解题意**、**ROUND()函数**、**一张表有两个外键且外键为同一张表进行连接**
+
+​	1、解决一张表有两个外键且外键为同一张表进行连接：虽然都是Users表，但是可以看作一个是客户Users表，一个是司机Users表，所以相当于一张主表去连接另外两张“不同”的表
+
+​	2、一次行程对应两条Users表内的记录（一条是客户的信息，一条是司机的信息），所以如果本次行程只要是客户或者司机在Users表内为Yes，那么Users表内的两条记录都应该被过滤掉
+
+​	3、ROUND()函数，四舍五入或者取N位小数
+
+​		ROUND(45.6) = 46 只有一个参数时默认为四舍五入
+​		ROUND(45.678，2) = 45.68 四舍五入之后保留第二个参数所表示的小数个数
+
+```sql
+# Write your MySQL query statement below
+SELECT a.request_at AS "Day",
+	   round(sum(IF(a.status = 'completed', 0, 1))/count(a.status), 2) AS "Cancellation Rate"
+FROM Trips a
+INNER JOIN Users b 
+ON (a.client_id = b.users_id AND b.banned = 'No')
+INNER JOIN Users c
+ON (a.driver_id = c.users_id AND b.banned = 'No')
+WHERE a.request_at BETWEEN '2013-10-01' AND '2013-10-03'
+GROUP BY a.request_at
+```
+
+
+
