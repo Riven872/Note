@@ -425,3 +425,30 @@ ON (a.driver_id = c.users_id AND b.banned = 'No')
 WHERE a.request_at BETWEEN '2013-10-01' AND '2013-10-03'
 GROUP BY a.request_at
 ```
+
+###### 601、体育馆的人流量
+
+**聚合函数配合窗口函数进行组内的聚合**、**查询连续N次的记录**
+
+```sql
+SELECT b.id, b.visit_date, b.people
+FROM (SELECT id, 
+		     visit_date,
+		     people,
+		     count(*) OVER (PARTITION BY a.id2) AS rk --对差值进行分组，并对该分组的数量进行聚合
+     FROM (SELECT id,
+		     	  visit_date,
+		     	  people,
+  			      (id - ROW_NUMBER() OVER(ORDER BY id)) AS id2 --本题给的id是连续的，因此id直接减去排名也是稳定的数字（如果id不稳定则需要造）
+ 	  	   FROM Stadium
+           WHERE people >= 100) AS a) AS b
+WHERE b.rk >= 3
+ORDER BY b.visit_date ASC
+
+--最内层SELECT：目的在于查连续差值（id连续可直接相减，不连续则需要造连续的列）
+--次内层SELECT: 目的在于查出每组聚合的数量，也即连续的次数
+--最外层SELECT: 最终查询，目的在于查出所需的展示的数据
+
+GROUP BY聚合会分组完之后，对集合数据进行聚合，而PARTITTION BY聚合是逐条累积计算
+```
+
