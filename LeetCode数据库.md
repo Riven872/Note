@@ -428,7 +428,7 @@ GROUP BY a.request_at
 
 ###### 601、体育馆的人流量
 
-**聚合函数配合窗口函数进行组内的聚合**、**查询连续N次的记录**
+**聚合函数配合窗口函数进行组内的聚合**、**查询连续N次的记录**、**GROUP BY和PARTITION BY的区别**
 
 ```sql
 SELECT b.id, b.visit_date, b.people
@@ -449,6 +449,38 @@ ORDER BY b.visit_date ASC
 --次内层SELECT: 目的在于查出每组聚合的数量，也即连续的次数
 --最外层SELECT: 最终查询，目的在于查出所需的展示的数据
 
-GROUP BY聚合会分组完之后，对集合数据进行聚合，而PARTITTION BY聚合是逐条累积计算
+GROUP BY分组完之后，聚合函数将数据进行聚合
+PARTITION BY另起一行分组
+详细见下方引用
 ```
 
+> group by是分组函数，partition by是分析函数
+> 直接举例
+> 对表x中每个水果继续评分
+> name score
+> 苹果 2
+> 苹果 5
+> 苹果 3
+> 桃子 7
+> 香蕉 1
+> 香蕉 4
+> select name,score,sum(sore)
+> from x
+> group by name
+> 是先分组之后，把每一组的sore相加，最后显示的是
+> name score
+> 苹果 10
+> 桃子 7
+> 香蕉 5
+> select name,score,sum(sore) over (partition by name) as 分数和
+> from x
+> 是查询name和score之后，over(partition by name) 是另起一行，对sore相同的进行sum操作
+> name score 分数和
+> 苹果 2 10
+> 苹果 5 10
+> 苹果 3 10
+> 桃子 7 10
+> 香蕉 1 5
+> 香蕉 4 5
+> partition by 有点像是sum后的附加条件，所以partition by 是分析操作。
+> 并且partition by是必须跟over一起使用的。
