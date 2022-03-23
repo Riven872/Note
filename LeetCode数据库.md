@@ -379,3 +379,24 @@ FROM seat, (SELECT count(*) AS num
 ORDER BY id ASC
 ```
 
+##### Hard
+
+###### 185、部门工资前三高的所有员工
+
+**DENSE_RANK() OVER()开窗函数**、**某个分组内前某项数据前N的记录**
+
+```sql
+SELECT Department, Employee, Salary
+FROM (SELECT b.name AS  Department,
+  			 a.name AS Employee,
+  			 a. salary AS Salary,
+  			 DENSE_RANK() OVER(PARTITION BY a.departmentId
+		 					   ORDER BY a. salary DESC) AS rk
+	  FROM Employee a
+	  INNER JOIN Department b
+	  ON a.departmentId = b.id) AS a 
+WHERE rk < 4
+
+--内层SELECT先构造一个带rank排名的临时表，外层SELECT通过WHERE条件去过滤记录
+```
+
