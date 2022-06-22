@@ -673,6 +673,7 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
     - 处理流/包装流：“连接”在已存在的流（节点流或处理流）之上，为程序提供更为强大的读写功能，如：BufferedReader、BufferedWriter
 
 - 流和文件：文件与文件之间无法直接通信，可以将流理解为运输媒介，进行文件间的数据交换
+
 - 字节输入流InputStream：（InputStream抽象类是所有类字节输入类的父类）
   - FileInputStream：文件输入流
   - BufferedInputStream：缓冲字节输入流（其直接父类为FilterInputStream）
@@ -755,18 +756,39 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
   - ObjectOutputStream提供了序列化功能
   - ObjectInputStream提供了反序列化功能
 
-- 序列化和反序列化
+- 序列化和反序列化（操作对象，需要用对象字节输入\输出流`ObjectInputStream、ObjectOutputStream`）
 
   - 1、序列化就是在保存数据时，保存数据的值和数据类型
+
   - 2、反序列化就是在恢复数据时，恢复数据的值和数据类型
+
   - 3、需要让某个对象支持序列化机制，则必须让其类是可序列化的，所以该类必须实现两个接口之一（推荐使用Serializable）：
     - `Serializable//这是一个标记接口，只是标记性质，里面没有方法` 
     - `Externalizable//该接口有方法需要去实现，也是实现了Serializable接口`
 
   - 4、序列化的类中建议添加`private static final log serialVersionUID = 1L;`，为了提高版本的兼容性
+
   - 5、序列化对象时，默认里面所有属性都进行序列化，但除了`static`或`transient`修饰的成员
+
   - 6、序列化对象时，要求类里面属性的类型也要实现序列化接口：如Animal类中，有个属性是Dog类，那么要求Dog类也实现了序列化接口，否则报错
+
   - 7、序列化具备可继承性，如果某类已经实现了序列化，则它的所有子类也已经默认实现了序列化
+
+      ```java
+      //序列化
+      String destPath = "src\\dog.dat";
+      ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(destPath));
+      oos.writeObject(dog);
+      oos.close();
+      
+      //反序列化
+      ObjectInputStream ois = new ObjectInputStream(new FileInputStream(destPath));
+      Dog dog2 = (Dog) ois.readObject();
+      System.out.println(dog2);
+      ois.close();
+      ```
+
+      
 
 - 标准输入输出流
   - `System.in`标准输入，编译类型是InputStream，运行类型是BufferedInputStream，默认设备为键盘
@@ -805,5 +827,45 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
     osw.close();//关闭流
     ```
 
-    
+- 打印流：只有输出流，没有输入流
+
+    - PrintStream字节打印流，在默认情况下，PrintStream输出数据的位置是标准输出，即显示器，因此也可以指定输出到文件
+    - PrintWriter字符打印流
+
+- Properties类（HashTable子类）：
+
+    - 1、专门用于读写配置文件的集合类，且配件文件格式为：
+
+        键=值
+
+        键=值
+
+        ...
+
+    - 2、键值对不需要有空格，值不需要用引号。默认类型为String
+
+    - 3、常用方法：
+
+        - 1、`load`：加载配件文件的键值对到Properties对象中
+
+        - 2、`list`：将数据显示到指定设备
+
+        - 3、`getProperty(key)`：根据键获取值
+
+        - 4、`setProperty(key,value)`：设置键值对到Properties对象，如果文件无key就创建，有key就覆盖
+
+        - 5、`store`：将properties中的键值对存储到配置文件，如果没有文件则新建。如果有中文则会变为相应的unicode编码
+
+            ```java
+            //创建Properties集合对象
+            Properties pro = new Properties();
+            //向Properties中添加键值对信息
+            pro.setProperty("charset","utf-8");
+            //存储到文件中
+            pro.store(new FileOutputStream("e:\\a.properties"), null);
+            //注：null的地方可以写String，表示添加头注释
+            //注：而且在此处只是新建了一个FileOutputStream对象，并没有实际应用，因此不用.close关闭流
+            ```
+
+            
 
