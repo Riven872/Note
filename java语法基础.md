@@ -659,7 +659,7 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
 
 - 流的分类
   - 按操作数据单位不同：
-    - 字节流（8bit）：效率比较低，用于传输二进制文件，可以保证无损操作（因为是以单字节为单位进行传输）
+    - 字节流（8bit）：效率比较低，用于传输二进制文件（图片、声音、视频等），可以保证无损操作（因为是以单字节为单位进行传输）
       - 字节输入流：`InputStream`
       - 字节输出流：`OutPutStream`
     - 字符流（按字符）：效率较高，用于传输文本文件
@@ -712,3 +712,98 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
     - 1、节点流是底层流/低级流，直接与数据源相连
     - 2、处理流（包装流）包装了节点流，既可以消除不同节点流的实现差异，也可以提供更方便的方法来完成输入输出
     - 3、处理流对节点流进行包装，使用了修饰器设计模式，不会直接与数据源相连
+
+- 处理流的功能主要体现在
+  - 1、性能的提高：主要以增加缓冲的方式来提高输入输出的效率
+  - 2、操作的便捷：处理流可能提供了一系列便捷的方法来一次输入输出大批量的数据，使用更加灵活方便
+
+- 关闭处理流时，只需要关闭外层流即可
+
+- 处理字符输入流BufferedReader
+
+  ```java
+  String filePath = "c:\\a.java";
+  BufferedReader bufferedReader = new BufferedReader(new fileReader(filePath));//处理流对象中放的还是节点流
+  ...;
+  bufferedReader.close();//只需关闭外层流即可，因为底层会自动去关闭节点流
+  ```
+
+- 处理字符输出流BufferedWriter
+
+  ```java
+  BufferedWriter bufferedWriter = new BufferedWriter(new fileWriter(filePath, true));
+  //BufferedWriter没有提供追加的方法，因此实际上还是在节点流构造器中加true进行内容的追加
+  ...;
+  bufferedWriter.close();
+  ```
+
+- 处理字节输出流BufferedOutputStream
+
+  ```java
+  BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(filePath));//处理流对象中放的还是节点流
+  ...;
+  bufferedOutputStream.close();
+  ```
+
+- 处理字节输入流BufferedInputStream
+
+  同处理字符输入流
+
+- 字节流既可以操作二进制文件，也可以操作文本文件
+
+- 对象流就是可以将基本数据类型或者对象进行序列化和反序列化操作
+  - ObjectOutputStream提供了序列化功能
+  - ObjectInputStream提供了反序列化功能
+
+- 序列化和反序列化
+
+  - 1、序列化就是在保存数据时，保存数据的值和数据类型
+  - 2、反序列化就是在恢复数据时，恢复数据的值和数据类型
+  - 3、需要让某个对象支持序列化机制，则必须让其类是可序列化的，所以该类必须实现两个接口之一（推荐使用Serializable）：
+    - `Serializable//这是一个标记接口，只是标记性质，里面没有方法` 
+    - `Externalizable//该接口有方法需要去实现，也是实现了Serializable接口`
+
+  - 4、序列化的类中建议添加`private static final log serialVersionUID = 1L;`，为了提高版本的兼容性
+  - 5、序列化对象时，默认里面所有属性都进行序列化，但除了`static`或`transient`修饰的成员
+  - 6、序列化对象时，要求类里面属性的类型也要实现序列化接口：如Animal类中，有个属性是Dog类，那么要求Dog类也实现了序列化接口，否则报错
+  - 7、序列化具备可继承性，如果某类已经实现了序列化，则它的所有子类也已经默认实现了序列化
+
+- 标准输入输出流
+  - `System.in`标准输入，编译类型是InputStream，运行类型是BufferedInputStream，默认设备为键盘
+  - `System.out`标准输出，编译类型是PrintStream，运行类型是PrintStream，默认设备为显示器
+
+- 转换流：把字节流转成字符流，而字节流本身又可以指定编码方式，再转成字符流时就可以避免乱码
+
+  - InputStreamReader：父类是Reader，可以将InputStream（字节流）包装成Reader（字符流）
+
+    ```java
+    InputStreamReader(InputStream, Charset);//参数1：字节输入流 参数2：指定的编码格式
+    ```
+
+  - OutputStreamWriter：父类是Writer，可以将OutputStream（字节流）包装成Writer（字符流）
+
+    ```java
+    OutputStreamReader(OutputStream, Charset);//参数1：字节输出流 参数2：指定的编码格式
+    ```
+
+  - 在处理纯文本数据时，如果使用字符流效率更高，并且可以有效解决中文问题，并且可以在使用时指定编码格式
+
+    ```java
+    String filePath = "e:\\a.txt";//指定读取数据源
+    InputStreamReader isr = new InputStreamReader(new FileInputStream(filePath, "gbk"));//转换流，将字节流转换成字符流
+    BufferedReader br = new BufferedReader(isr);//将转换流放入到包装流，其实还是用BufferedReader进行读取
+    String s = br.readLine();//使用包装流读取
+    sout(s);//输出
+    br.close();//关流，关闭最外层的
+    //字节流->转换流->包装流字符
+    ```
+
+    ```java
+    String filePath = "e:\\a.txt";//指定文件位置
+    OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream(filePath, "UTF-8"));//转换流，将字节流转换成字符流
+    osw.write("写入foo");//直接使用转换流写入
+    osw.close();//关闭流
+    ```
+
+    
+
