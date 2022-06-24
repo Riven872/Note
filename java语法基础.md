@@ -937,3 +937,62 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
     - 3、Socket允许程序把网络连接成一个流，数据在两个Socket间通过IO传输
     - 4、一般主动发起通信的应用程序属客户端，等待通信请求的为服务端
     - 5、分为TCP编程和UDP编程
+
+- TCP网络通信编程（注意顺序：服务器端先运行进行监听，等待客户端启动）
+
+  - 服务器端：
+
+  ```java
+  //在本机9999端口监听，等待连接，但是如果9999端口被占用，会抛异常
+  ServerSocket serverSocket = new ServerSocket(9999);
+  //当没有客户端连接9999端口时，程序会阻塞，等待连接，如果有客户端连接，则会返回Socket对象，程序继续
+  Socket socket = serverSocket.accept();
+  //通过对应的socket对象的输入流获取数据通道内的数据，如果客户端没有发消息，则会阻塞等客户端写入
+  InputStream inputStream = socket.getInputStream();
+  //IO读取
+  byte[] bytes = new byte[1024];
+  int readLine = 0;
+  while((readLine = inputStream.read(bytes)) != -1) {
+      sout(new String(bytes, 0, readLine));
+  }
+  //获取socket相关的输出流
+  OutputStream outputStream = socket.getOutputStream();
+  //回送给客户端消息
+  outputStream.write("hello client".getBytes());
+  //设置结束写入标记，否则接收方会以为没有写完而阻塞
+  socket.shutdownOutput();
+  //关闭流和socket
+  inputStream.close();
+  outputStream.close();
+  socket.close();
+  //关闭ServerSocket，因为ServerSocket可以对应多个socket，就相当于多个主机连接到一台服务器（即多并发）
+  serverSocket.close();
+  ```
+
+  - 客户端
+
+  ```java
+  //连接服务端（ip、端口），连接参数1主机的9999端口,如果连接成功会返回Socket对象
+  //正常情况下，参数1应该写IP地址，此处是为了显示用的本机 new Socket("192.168.1.1",9999)
+  Socket socket = new Socket(InetAddress.getLocalHost(),9999);
+  //连接上后，生成Socket，通过socket.getOutputStream()得到和Socket对象关联的输出流对象
+  OutputStream outputStream = socket.getOutputStream();
+  //通过输出流，写入数据到数据通道
+  outputStream.Write("hello server".getBytes());
+  //设置结束写入标记，否则接收方会以为没有写完而阻塞
+  socket.shutdownOutput();
+  //获取和socket相关联的输入流读取服务端回送的消息（字节）
+  InputStream inputStream = socket.getInputStream();
+  //IO读取
+  byte[] bytes = new byte[1024];
+  int readLine = 0;
+  while((readLine = inputStream.read(bytes)) != -1) {
+      sout(new String(bytes, 0, readLine));
+  }
+  //必须关闭流对象和socket
+  outputStream.close();
+  inputStream.close();
+  socket.close();
+  ```
+
+  - 注：客户端和服务器端各有一个Socket对象
