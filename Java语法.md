@@ -880,6 +880,7 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
     - D类：1 1 1 0 28位多播组号
     - E类：1 1 1 1 0 27位留待后用
     - 特殊类：127.0.0.1表示本机地址
+
 - IPv6使用16个字节128位：`×:×:×:×:×:×`
 
 - 域名：
@@ -938,7 +939,7 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
     - 4、一般主动发起通信的应用程序属客户端，等待通信请求的为服务端
     - 5、分为TCP编程和UDP编程
 
-- TCP网络通信编程（注意顺序：服务器端先运行进行监听，等待客户端启动）
+- TCP网络通信编程——字节流（注意顺序：服务器端先运行进行监听，等待客户端启动）
 
   - 服务器端：
 
@@ -973,7 +974,7 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
 
   ```java
   //连接服务端（ip、端口），连接参数1主机的9999端口,如果连接成功会返回Socket对象
-  //正常情况下，参数1应该写IP地址，此处是为了显示用的本机 new Socket("192.168.1.1",9999)
+  //正常情况下，参数1应该写IP地址，此处是为了显示用的本机 实际应该是new Socket("192.168.1.1",9999)
   Socket socket = new Socket(InetAddress.getLocalHost(),9999);
   //连接上后，生成Socket，通过socket.getOutputStream()得到和Socket对象关联的输出流对象
   OutputStream outputStream = socket.getOutputStream();
@@ -996,3 +997,61 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
   ```
 
   - 注：客户端和服务器端各有一个Socket对象
+
+- TCP网络通信编程——字节流
+
+    - 服务器端：
+
+    ```java
+    ServerSocket serverSocket = new ServerSocket(9999);
+    Socket socket = serverSocket.accept();
+    InputStream inputStream = socket.getInputStream();
+    //使用转换流，将字节流转成字符流
+    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+    //使用readLine读取数据
+    String s = bufferedReader.readLine();
+    //输出读到的数据
+    sout(s);
+    //使用字符流回写
+    OutputStream outputStream = socket.getOutputStream();
+    BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(outputStream));
+    //写入回写数据
+    bufferedWriter.write("hello client");
+    //结束符
+    bufferedWriter.newLine();
+    //需要手动刷新
+    bufferedWriter.flush();
+    
+    bufferedReader.close();
+    bufferedWriter.close();
+    socket.close();
+    serverSocket.close();
+    ```
+
+    - 客户端
+
+    ```java
+    Socket socket = new Socket(InetAddress.getLocalHost(),9999);
+    OutputStream outputStream = socket.getOutputStream();
+    //字节流转换成字符流
+    BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(OutputStream));
+    //用字符流写入
+    bufferedWriter.write("hello server");
+    //插入一个换行符，表示写入的内容结束，而且要求接收方使用readLine()！！！！！！！！！否则读不到结束符
+    bufferedWriter.newLine();
+    //如果使用字符流，则需要手动刷新，否则数据不会写入数据通道
+    bufferedWriter.flush();
+    //此时就不需要结束标记了，有换行符代替 socket.shutdownOutput();
+    //读取回写数据
+    InputStream inputStream = socket.getInputStream();
+    //使用转换流，将字节流转成字符流
+    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+    //使用readLine读取数据
+    String s = bufferedReader.readLine();
+    //输出读到的数据
+    sout(s);
+    
+    bufferedWriter.close();
+    bufferedReader.close();
+    socket.close();
+    ```
