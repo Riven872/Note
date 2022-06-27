@@ -998,7 +998,7 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
 
   - 注：客户端和服务器端各有一个Socket对象
 
-- TCP网络通信编程——字节流
+- TCP网络通信编程——字符流
 
     - 服务器端：
 
@@ -1055,3 +1055,30 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
     bufferedReader.close();
     socket.close();
     ```
+
+- 只有字符流时，才会用到`.flush()`、`.readLine()`，使用字节流时，结束标记使用`socket.shutdownOutput()`
+
+- `netstat -an`可以查看当前主机网络情况，包括端口监听情况和网络连接情况
+    - 0.0.0.0和127.0.01表示本机地址
+    - 外部地址：外部连接进来的ip地址
+    - 内部地址：外部连接进来后与哪个内部地址相连
+- `netstat -anb`可以查看哪个应用在使用哪个端口
+- 当客户端连接到服务端后，服务端是指定的端口进行监听，而客户端的端口是由TCP/IP来分配的，是不确定的随机的
+
+- UDP网络通信编程（了解）
+    - 1、类DatagramSocket（数据报套接字）和DatagramPacket（数据报/数据包）实现了基于UDP协议网络程序
+    - 2、UDP数据报通过DatagramSocket数据报套接字发送和接受，系统不保证UDP数据报一定能够安全送到目的地，也不能确定什么时候可以抵达
+    - 3、DatagramPacket对象封装了UDP数据报，在数据报中包含了发送端的IP地址和端口号以及接收端的IP地址和端口号
+    - 4、UDP协议中每个数据报都给出了完整的地址信息，因此无须建立发送方和接收方的连接
+    - 5、没有明确的服务端和客户端，演变成数据的发送端和接收端
+    - 6、接受数据和发送数据是通过DatagramSocket对象完成
+    - 7、发送数据时，会将数据封装到DatagramPacket对象中发送（装包）
+    - 8、当接收到DatagramPacket对象，需要进行拆包，取出数据
+    - 9、DatagramSocket可以指定在接收端的某个端口接收数据
+- UDP网络编程基本流程
+    - 1、核心的两个类/对象DatagramSocket和DatagramPacket
+    - 2、建立发送端，接收端（没有服务端和客户端的概念）
+    - 3、建立数据包DatagramPacket
+    - 4、调用DatagramSocket的发送、接收方法
+    - 5、关闭DatagramSocket
+
