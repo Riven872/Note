@@ -1062,7 +1062,9 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
     - 0.0.0.0和127.0.01表示本机地址
     - 外部地址：外部连接进来的ip地址
     - 内部地址：外部连接进来后与哪个内部地址相连
+    
 - `netstat -anb`可以查看哪个应用在使用哪个端口
+
 - 当客户端连接到服务端后，服务端是指定的端口进行监听，而客户端的端口是由TCP/IP来分配的，是不确定的随机的
 
 - UDP网络通信编程（了解）
@@ -1075,6 +1077,7 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
     - 7、发送数据时，会将数据封装到DatagramPacket对象中发送（装包）
     - 8、当接收到DatagramPacket对象，需要进行拆包，取出数据
     - 9、DatagramSocket可以指定在接收端的某个端口接收数据
+    
 - UDP网络编程基本流程
     - 1、核心的两个类/对象DatagramSocket和DatagramPacket
     - 2、建立发送端，接收端（没有服务端和客户端的概念）
@@ -1092,3 +1095,20 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
     - 线程会持有socket，目的就是拿到对应的socket对象输入输出流进行请求和回写操作
     - 当某个服务端的线程要退出时，发送一个退出请求到服务器端，然后自身调用`System.exit(0)`进行客户端线程的退出。服务器端接收到退出请求后，关闭该与该线程通信的服务端的socket，然后退出该线程的run方法，就是退出服务器端的线程
     - 私聊建立：相当于客户端A将Msg打包给服务端，服务端解析出接收人之后，再将Msg打包给接收人的过程，服务端充当了一个桥梁，因为服务端有所有连接线程的集合
+    
+- 项目总结
+
+    - 客户端：
+        - `FileClientService`：用来完成文件的传输
+        - `MessageClient`：用来私聊或群聊
+        - `UserClientService`：用来登录验证用户信息，该类有方法进行验证，因此会持有`User类`来发送用户的消息、`Socket类`来用输出流将信息发送到服务端
+        - `ClientConnectServerThread`：每一个线程独立与服务器持续进行通信，因此会持有`Socket类`，在本项目中，每成功登录一次则新开一个线程
+        - `ManageClientConnectServerThread`：管理客户端连接到服务端的线程类集合，会持有`HashMap<String, ClientConnectServerThread>`，来集中管理线程，会负责将新线程放入集合中（当线程结束后会自动销毁，因此不用管理移除线程），并可以通过`UserId`获取对应的线程`ClientConnectServerThread对象`
+        - `View`：页面类，业务层面，持有`UserClientService`、`ClientConnectServerThread`、`FileClientService`对象，进行方法的调用
+    - 服务端：
+        - `Server`：用来监听端口，并验证用户信息，因此持有`ServerSocket`对象和所有用户账号密码的集合
+        - `ServerConnectClientThread`：用来和服务端进行通信，并处理服务端的请求，该类持续运行监听
+        - `ManageClientThreads`：管理和客户通信的线程，可以通过`UserId`获取对应的线程，也可以返回所有在线的列表
+        - `SendNewsToAllService`：该线程用来向所有用户进行群发新闻
+        - `Frame`：用来启动服务端`Server`对象指定端口进行监听，即调用`Server`无参的构造器
+
