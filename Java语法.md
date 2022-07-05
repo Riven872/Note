@@ -1112,3 +1112,98 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
         - `SendNewsToAllService`：该线程用来向所有用户进行群发新闻
         - `Frame`：用来启动服务端`Server`对象指定端口进行监听，即调用`Server`无参的构造器
 
+###### 反射
+
+- 设计模式OCP原则：通过外部文件配置，在不修改源码情况下控制程序，进行功能的扩展（OCP即开闭原则，开：拓展功能，闭：不修改源码）
+
+- 通过反射机制来读取配置文件实例化对象并调用其方法
+
+    ```java
+    //通过Properties读取配置文件得到类的全路径为classfullpath=com.edu.Cat，方法为methodName=hi
+    //1、加载类，返回Class类型的对象
+    Class cls = Class.forName(classfullpath);
+    //2、通过cls得到加载的类com.edu.Cat对象实例
+    Object foo = cls.newInstance();//其中foo的运行类型为Cat
+    //3、通过cls得到加载的类com.edu.Cat的方法为methodName的对象方法
+    Method method1 = cls.getMethod(methodName);//即在反射中，可以把方法当成对象（万物皆对象）
+    //4、通过method1调用方法（即通过方法对象来调用他的方法）
+    method1.invoke(foo);//传统方法：对象.方法名()  反射机制：方法对象.invoke(对象名)
+    //5、通过Field获得成员变量的值，有多少个属性就有多少个Field
+    Field field = cls.getField("age");//反射类.getField("属性名")，注意：私有属性这种方法拿不到
+    filed.get(foo);//field.get(确定的类)，会返回属性age的值
+    //6、通过Constructor获得构造器
+    Constructor constructor = cls.getConstructor();//()中可以指定构造器的参数类型
+    Constructor constructor2 = cls.getConstructor(String.class);//即constructor2拿到了有参的构造器，且该构造器需要一个String类型的参数
+    ```
+
+- 反射机制与传统机制相反，是因为（个人理解）：拿到反射的类之后，放入确定的类名来进行类的定位，以确保拿到的是哪个类的属性、方法等等，因为类会有很多个，但是反射类Class只有一个
+
+- 反射机制允许程序在执行期间借助于`Reflection API`取得任何类的内部信息（如成员变量、构造器、成员方法等），并能操作对象的属性及方法
+
+- 加载完类之后，在堆中就产生了一个Class类型的对象（可以理解为ReflectionClass对象，且一个类只有一个ReflectionClass对象），这个对象包含了类的完整结构信息，通过这个对象得到类的结构
+
+    - ```java
+        //可以类比
+        p对象->类型：Person类
+        cls对象->类型：Class类
+        //这个Class类型只是也叫Class    
+        ```
+
+- 反射相关的主要类：
+    - Class：代表一个类，Class对象表示某个类加载后在堆中的对象
+    - Method：代表类的方法，Method对象表示某个类的方法
+    - Field：代表类的成员变量，Field对象表示某个类的成员变量
+    - Constructor：代表类的构造方法，Constructor对象表示某个类的构造器
+
+- 反射的优点：可以动态的创建和使用对象
+- 反射的缺点：使用反射基本是解释执行，对执行速度有影响（即传统方式实例化会更快）
+
+- 反射调用速度的优化（非常有限，效果一丢丢）：Method、Field、Constructor对象都有setAccessible()方法，可以传入参数true来禁用访问安全检查的开关
+
+- Class类分析：
+
+    - Class也是类，因此继承Object类
+
+    - Class类对象不是new出来的，是系统的类加载器创建的
+
+    - 对于某个类的Class类对象，在内存中只有一份，如果已经创建过了就不会再创建，相当于第一次加载时，把模板加载到了内存中
+
+        - 比如有Cat对象，new一次实例，反射创建一次实例，在第一次new的时候，模板已经加载到内存了
+
+    - 每个类的实例都会记得自己是由哪个Class实例（或者说加载到内存的Class的模板）所生成
+
+        - 比如有Cat对象，new一次得cat1，new第二次得cat2，得到的两个实例都会知道自己来源于Cat对象，因此可以通过任一个实例化的对象去拿到关联的Class类（或者说加载到内存的Class的模板）
+
+    - 通过Class对象（或者说加载到内存的Class的模板）可以完整地得到一个类的完整的结构（通过反射一系列的API）
+
+    - Class对象（或者说加载到内存的Class的模板）存放在堆中
+
+    - 类的字节码二进制数据放在方法区中，也称为元数据（包括方法代码、变量名、方法名、访问权限等等）
+
+        - Cat.Class字节码文件在类加载阶段，会在堆中生成Class类对象（或者说加载到内存的Class的模板），并在方法区中生成Cat类的字节码二进制数据/元素局，且方法区会引用Class类对象（或者说加载到内存的Class的模板），堆中的是数据结构便于数据的操作，而元数据是数据的保存，不利于数据的操作，可以把方法区的元数据理解为模板的二进制格式
+
+    - ```java
+        Class cls = Class.forName(com.hspedu.Car);
+        System.out.println(cls);//显示cls对象，是哪个类的Class对象 会返回com.hspedu.Car
+        System.out.println(cls.getClass());//输出cls运行类型 会返回java.lang.CLass，并不是返回Car类型，因为此时还没有实例化
+        Object o = cls.newInstance();//此时o就是Car类型，完成了实例化
+        ```
+        
+    - 通过反射给属性赋值
+    
+        ```java
+        Field field = cls.getField("属性名");
+        System.out.println(field.get(实例化名));
+        field.set(实例化名,新的值);
+        ```
+    
+    - 通过反射获得所有属性（属性名而非属性的值）
+    
+        ```java
+        Field[] field = cls.getFields();
+        for(Field f : fileds){
+            sout(f.getName());
+        }
+        ```
+    
+        
