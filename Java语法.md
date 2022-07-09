@@ -1258,7 +1258,136 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
     - 初始化：真正开始执行类中定义的Java程序代码，程序员可控，在此阶段，依次自动收集类中的所有静态变量的赋值动作和静态代码块中的语句，并进行合并
 
 - 通过反射创建对象
-    - 1、newInstance：调用类中的无参构造器，获取对应类的对象
-    - 2、getConstructor(Class...classes)：根据参数列表，获取对应的public构造器对象
-    - 3、getDecalaredConstructor(Class...classes)：根据参数列表，获取对应的所有构造器的对象
-    - 4、
+
+    - Class类相关方法
+
+        - 1、newInstance：调用类中的无参构造器，获取对应类的对象
+        - 2、getConstructor(Class...classes)：根据参数列表，获取对应的public构造器对象
+        - 3、getDecalaredConstructor(Class...classes)：根据参数列表，获取对应的所有构造器的对象
+
+    - Constructor类相关方法
+
+        - 1、setAccessible：暴破
+        - 2、newInstance(Object...obj)：调用构造器
+
+    - 例子
+
+        - 1、先获得User类的Class类对象
+
+            ```java
+            Class userClass = Class.forName("com.edu.User");
+            ```
+
+        - 2、通过public的无参构造器创建实例
+
+            ```java
+            Object o = userClass.newInstance();
+            ```
+
+        - 3、通过public的有参构造器创建实例
+
+            ```java
+            //先得到对应的有参构造器
+            Constructor constructor = userClass.getConstructor(String.class);
+            //通过对应的有参构造器实例化，并传入所需要的参数
+            Object user = constructor.newInstance("jack");
+            ```
+
+        - 4、通过非public的有参构造器创建实例
+
+            ```java
+            //先得到对应的private的有参构造器
+            Constructor constructor = userClass.getDeclaredConstructor(int.class, String.class);
+            //通过暴破，来获得私有的构造器/属性等，如果不使用暴破直接创建实例，会抛异常
+            constructor.setAccessible(true);
+            //通过对应的有参构造器实例化，并传入所需要的参数
+            Object user = constructor.newInstance(20, "jack");
+            ```
+
+- 通过反射访问类中的成员
+
+    - 例子
+
+        - 1、先得到Student类的Class对象
+
+            ```java
+            Class stuClass = Class.forName("com.edu.Student");
+            ```
+
+        - 2、用默认构造器创建对象
+
+            ```java
+            Object o = stuClass.newInstance();
+            ```
+
+        - 3、使用反射访问public的age属性对象
+
+            ```java
+            //获得对应的属性对象
+            Field age = stuClass.getField("age");
+            //设置值(实例化的对象名, 参数值)
+            age.set(o, 20);
+            //获取值(实例化的对象名)
+            age.get(o);
+            ```
+
+        - 4、使用反射访问非public的name属性对象
+
+            ```java
+            //获得对应的属性名称
+            Field name = stuClass.getDeclaredField("name");
+            //进行暴破，获得private属性的访问权限
+            name.setAccessible(true);
+            //设置值，如果该属性为static的，第一个参数可以为Null，也可以为实例化的对象名，因为实例化的对象也可以访问静态属性
+            name.set(null, "jack");
+            name.set(o, "lucy");
+            //获得值，规则同上
+            name.get(null);
+            name.get(o);
+            ```
+
+- 通过反射访问类中的方法
+
+    - 例子
+
+        - 1、先得到Boss类的Class对象
+
+            ```java
+            Class bossClass = Class.forName("com.edu.Boss");
+            ```
+
+        - 2、用默认构造器创建对象
+
+            ```java
+            Object o = bossClass.newInstance();
+            ```
+
+        - 3、调用public的hi方法
+
+            ```java
+            //获得对应的方法(方法名, 方法的形参格式)
+            Method hi = bossClass.getMethod("hi", String.class);
+            //调用方法(实例化的对象名, 方法所需的参数值)
+            hi.invoke(o, "李在干什么");
+            ```
+
+        - 4、调用非public的say方法
+
+            ```java
+            //获得对应的方法
+            Method say = bossClass.getDeclaredMethod("say", String.class, int.class, char.class);
+            //进行暴破，获得privat方法的访问权限
+            say.setAccessible(true);
+            //调用方法(实例化的对象名, 参数值)，如果是静态方法，则可以传入null
+            say.invoke(o, "张三", 20, "男");
+            say.invoke(null, "张三", 20, "男");
+            ```
+
+        - 5、如果方法有返回值，统一用Object接收，但运行类型还是该方法对应的返回值类型
+
+            ```java
+            Object returnValue = say.invoke(o, "张三", 20, "男");
+            ```
+
+            
+
