@@ -1559,3 +1559,36 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
     - 2、通过视图可以修改基表的数据，基表数据的修改也会影响到视图的数据
     - 3、视图是根据基表（也可以是多个基表）来创建
     - 4、视图中可以再使用视图
+
+
+
+###### JDBC
+
+- JDBC为访问不同的数据库提供了统一的接口，为使用者屏蔽了细节问题
+- 可以连接任何任何提供了JDBC驱动程序的数据库系统，从而完成对数据库的各种操作
+
+- Statement对象用于执行静态SQL语句并返回其生成的结果的对象
+    - Statement：存在SQL注入问题
+    - PreparedStatement：预处理
+    - CallableStatement：存储过程
+- JDBC API
+    - 1、DriverManager驱动管理类
+        - 1、getConnection(url, user, pwd)获取到连接对象
+    - 2、Connection接口
+        - 1、createStatement创建Statement对象
+        - 2、preparedStatement(sql)生成预处理对象
+    - 3、Statement接口
+        - 1、executeUpdate(sql)执行DML语句，返回影响的行数
+        - 2、executeQuery(sql)执行查询，返回ResultSet对象
+        - 3、execute(sql)执行任意的sql，返回布尔值
+    - 4、PreparedStatement接口
+        - 1、executeUpdate()执行DML
+        - 2、executeQuery()执行查询，返回ResultSet
+        - 3、execute()执行任意sql，返回布尔
+        - 4、setXxx(占位符索引, 占位符的值)解决sql注入
+        - 5、setObject(占位符索引, 占位符的值)
+    - 5、ResultSet(结果集)
+        - 1、next()向下移动一行，如果没有下一行就返回false
+        - 2、previous()向上移动一行，如果没有上一行就返回false
+        - 3、getXxx(列的索引/列名)通过列的索引或列名获取值，返回对应列的类型即返回Xxx
+        - 4、getObject(列的索引/列名)返回对应列的值，接收类型为Object
