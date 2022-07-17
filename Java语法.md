@@ -1629,3 +1629,9 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
 - DAO：data access object 数据访问对象/访问数据的对象，这样的通用类称为BasicDao，专门和数据库交互，即完成对数据库（表）的crud操作
 
 - 在BasicDao的基础上，实现一张表对应一个Dao，更好的完成功能，比如Customer表—Customer.java类（JavaBean）—CustomerDao.java
+
+- BasicDao简单设计
+    - 1、com.edu.dao_.utils //工具类
+    - 2、com.edu.dao_.domain //bean
+    - 3、com.edu.dao_.dao //存放XxxDao和BasicDao
+    - 4、com.edu.dao_.test //写测试类
