@@ -1609,3 +1609,23 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
     - 2、数据库连接池负责分配、管理和释放数据库的连接，它允许应用程序重复使用一个现有的数据库连接，而不是重新建立一个
     - 3、当应用程序向连接池请求的连接数超过最大连接数量时，这些请求将被加入到等待队列
 - 常用的数据库连接池技术：C3P0、德鲁伊（Druid）
+
+- Apache DBUtils：
+    - Java Bean：将数据库的实体映射到后端的自定义类，且类名、属性名与实体名、字段名相对应，该自定义实体称为Java Bean
+    - `new BeanListHandler<>(actor.class)`：通过resultSet取出actor实体的数据，并封装到ArrayList\<actor>中，因为底层使用的是反射机制去获取actor类的属性，然后进行封装，因此在actor实体中，要定义一个无参的构造函数和一个有参的构造函数
+    - `List<actor> list = queryRunner.query(connection, sql, new BeanListHandler<>(actor.class), 1);`：得到的连接对象、执行的sql语句、要封装的自定义类、sql里的拼接。
+    - `queryRunner.query`底层会在封装完成过后，自动关闭resultSet和PreparedStatement
+
+- Java Bean和表的类型映射关系
+
+    ```
+    表		Java Bean
+    int		 Integer
+    char	 String
+    double	 Double
+    date	 Date
+    ```
+
+- DAO：data access object 数据访问对象/访问数据的对象，这样的通用类称为BasicDao，专门和数据库交互，即完成对数据库（表）的crud操作
+
+- 在BasicDao的基础上，实现一张表对应一个Dao，更好的完成功能，比如Customer表—Customer.java类（JavaBean）—CustomerDao.java
