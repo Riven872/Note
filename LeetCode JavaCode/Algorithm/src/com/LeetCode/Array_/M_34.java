@@ -1,13 +1,13 @@
 package com.LeetCode.Array_;
 
 @SuppressWarnings({"all"})
-public class Mid_34 {
+public class M_34 {
     public static void main(String[] args) {
         int[] nums = {5, 7, 7, 8, 8, 10};
         int target = 5;
 
-        int leftBorder = new Mid_34().getBorder(nums, target - 1);
-        int rightBorder = new Mid_34().getBorder(nums, target) - 1;
+        int leftBorder = new M_34().getBorder(nums, target - 1);
+        int rightBorder = new M_34().getBorder(nums, target) - 1;
     }
 
     /**

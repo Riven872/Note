@@ -1,9 +1,9 @@
 package com.LeetCode.Array_;
 
 @SuppressWarnings({"all"})
-public class Mid_34_AC {
+public class M_34_AC {
     public static void main(String[] args) {
-        Mid_34_AC test = new Mid_34_AC();
+        M_34_AC test = new M_34_AC();
         int[] nums = {1};
         int target = 1;
         test.searchRange(nums, target);
