@@ -11,4 +11,59 @@
 - E-704：用二分法查找给定值
   - 基础二分法
   - 有两种写法，关键在于边界值的选择
-- E-35：用二分法搜索插入位置
+      - 法一：左闭右闭区间（low = 0, high = length - 1）
+      - 法二：左闭右开区间（low = 0, high = length），初始化和每次移动时，右边界不可比较
+- E-35：搜索插入位置
+    - 当没有找到目标值时，high指针会出现在该目标值应该在的前方一个位置。因为当target>mid时，最后一次交换，会将low移到high右边，当target<mid时，会将high移动到low左边（在没有找到目标值时最终状态的前一步，mid、low、high应指向同一处）
+
+- M-34：在排序数组中查找元素的第一个和最后一个位置
+
+    - 该数组有序，因此只需找到最左边界和最右边界即可
+
+    - 思路一：利用E-35的思路
+
+        - 找最左边界时，每当查到>=target值时，high=mid-1，并记录此时high的索引值为左边界值，如果没有边界值，则返回-1
+        - 找最右边界时，每当查到<=target值时，low=mid+1，并记录此时low的索引值为右边界值，如果没有边界值，则返回-1
+        - 情况一：target 在数组范围的右边或者左边，则某左右边界值会等于-1
+        - 情况二：target 在数组范围中，且数组中不存在target
+        - 情况三：target 在数组范围中，且数组中存在target，则右边界-左边界>1，此时返回[左边界值+1, 右边界值-1]（因为根据E-35，此时找到的边界值就是应该插入的位置，因此左边要+1，右边要-1）
+
+    - 思路二：
+
+        ```java
+        public int[] searchRange(int[] nums, int target) {
+            //target - 1是为了找比target值第一个小的位置，即使target - 1不存在，res返回的也是第一个小的位置的索引值，参考E-35
+            int leftBorder = new Mid_34().getBorder(nums, target - 1);
+            //getBorder(nums, target) - 1详细见下方法内的注释
+            int rightBorder = new Mid_34().getBorder(nums, target) - 1;
+            if (rightBorder >= leftBorder && nums[leftBorder] == target) {
+                return new int[]{leftBorder, rightBorder};
+            }
+            return new int[]{-1, -1};
+        }
+        
+        private int getBorder(int[] nums, int target) {
+            int length = nums.length;
+            int low = 0;
+            int high = length - 1;
+            //默认返回值是length，是因为如果只有一个元素的情况，mid结果会变成-1而造成错误
+            int res = length;
+            while (high >= low) {
+                int mid = (low + high) / 2;
+                if (target < nums[mid]) {
+                    high = mid - 1;
+                    //res记录右边索引而非左边索引，是因为取leftBorder时，res代表第一个比target小的位置的下一个索引
+                    //取rightBorder时，res代表第一个比target大的位置
+                    res = mid;
+                } else {
+                    //此时可能会出现target==nums[mid]，并不return，而是继续将low+1，进一步“压缩”左边的空间，
+                    //因此最后mid会停留在第一个大于target值的右边，此时返回时，应将return值-1
+                    low = mid + 1;
+                }
+            }
+            return res;
+        }
+        ```
+
+        
+

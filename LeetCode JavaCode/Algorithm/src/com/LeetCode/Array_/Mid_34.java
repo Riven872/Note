@@ -4,9 +4,10 @@ package com.LeetCode.Array_;
 public class Mid_34 {
     public static void main(String[] args) {
         int[] nums = {5, 7, 7, 8, 8, 10};
-        int target = 8;
-        new Mid_34().searchRange(nums, target);
-        new Mid_34().getBorder(nums, target);
+        int target = 5;
+
+        int leftBorder = new Mid_34().getBorder(nums, target - 1);
+        int rightBorder = new Mid_34().getBorder(nums, target) - 1;
     }
 
     /**
@@ -80,25 +81,24 @@ public class Mid_34 {
 
     /**
      * 合并（未完成）
+     *
      * @param nums
      * @param target
      * @return
      */
-    private int[] getBorder(int[] nums, int target) {
+    private int getBorder(int[] nums, int target) {
         int length = nums.length;
         int low = 0;
         int high = length - 1;
-        int rightBorder = -1, leftBorder = -1;
+        int mid = -1;
         while (high >= low) {
-            int mid = (low + high) / 2;
-            if (target >= nums[mid]) {
-                low = mid + 1;
-                rightBorder = low;
-            } else if (target <= nums[mid]) {
+            mid = (low + high) / 2;
+            if (target < nums[mid]) {
                 high = mid - 1;
-                leftBorder = high;
+            } else {
+                low = mid + 1;
             }
         }
-        return new int[]{rightBorder, leftBorder};
+        return mid;
     }
 }
