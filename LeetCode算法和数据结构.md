@@ -13,6 +13,7 @@
   - 有两种写法，关键在于边界值的选择
       - 法一：左闭右闭区间（low = 0, high = length - 1）
       - 法二：左闭右开区间（low = 0, high = length），初始化和每次移动时，右边界不可比较
+
 - E-35：搜索插入位置
     - 当没有找到目标值时，high指针会出现在该目标值应该在的前方一个位置。因为当target>mid时，最后一次交换，会将low移到high右边，当target<mid时，会将high移动到low左边（在没有找到目标值时最终状态的前一步，mid、low、high应指向同一处）
 
@@ -65,5 +66,64 @@
         }
         ```
 
-        
+- E-69：x 的平方根
 
+    - 思路：求某个非负数开方的整数部分，则该数必存在于0~x之间，这样就构成了有序、唯一的条件，可以用二分查找法在该范围进行查找
+
+        ```java
+        public int mySqrt(int x) {
+            //两种特殊情况
+            if (x == 0) {
+                return 0;
+            }
+            if (x == 1) {
+                return 1;
+            }
+            int low = 0;
+            int high = x;
+            int res = -1;
+            while (low <= high) {
+                int mid = (low + high) / 2;
+                if (x / mid < mid) {
+                    //防止溢出，等同于x < mid * mid
+                    high = mid - 1;
+                } else {
+                    low = mid + 1;
+                    //整数是向下取整，因此res在 x / mid > mid 时赋左边界值
+                    res = mid;
+                }
+            }
+            return res;
+        }
+        ```
+
+- E-367：有效的完全平方数
+
+  ```java
+  public boolean isPerfectSquare(int num) {
+      if (num == 0 || num == 1) {
+          return true;
+      }
+      int left = 0;
+      int right = num;
+      int res = 0;
+      while (left <= right) {
+          int mid = (left + right) / 2;
+          if (num / mid < mid) {
+              right = mid - 1;
+          } else{
+              //相当于找最左边界的值
+              left = mid + 1;
+              res = mid;
+          }
+      }
+      //如果最左边界的值平方等于num，则说明找到了正确值，如果不等于说明找到了开方值的整数部分
+      //找最左边界值的思想可以参考M-34
+      if (res * res == num) {
+          return true;
+      }
+      return false;
+  }
+  ```
+
+  
