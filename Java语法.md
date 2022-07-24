@@ -1675,3 +1675,63 @@ String d = "hsp" + "edu";//d在常量池中，因为是常量相加
   - `{n,m}`：指定至少n个但不多于m个匹配，如`[abcd]{3,5}`是由abcd中字母组成的任意长度为不少于3的字符串，abc、dca、aacdb、aaaaa等
   - `^`：指定起始字符
   - `$`：指定结束字符
+
+- 贪婪匹配和非贪婪匹配
+
+    ```java
+    String content = "abc111111";
+    String regStr = "\\d+";//默认是贪婪匹配，会匹配到111111
+    String regStr = "\\d+?";//在限定符后加问号?，则会使用非贪婪匹配，即一次匹配到1时就算
+    ```
+
+- 默认捕获分组
+
+    ```java
+    String content = "f s 1987aa 1& asd";
+    String resStr = "(\\d\\d)(\\d\\d)";
+    Pattern pattern = pattern.compile(regStr);
+    Matcher matcher = pattern.matcher(content);
+    while(matcher.find()){
+        System.out.println("找到:" + matcher.group(0));//会匹配到符合条件的字符串1987
+        System.out.println("找到:" + matcher.group(1));//会匹配到符合条件的字符串的第一组19
+        System.out.println("找到:" + matcher.group(2));//会匹配到符合条件的字符串的第二组87
+    }
+    ```
+
+- 命名捕获分组：可以给分组取名
+
+    ```java
+    String content = "f s 1987aa 1& asd";
+    String resStr = "(?<g1>\\d\\d)(?<t2>\\d\\d)";//可以在每个组前加?<组名>进行每个组的命名
+    Pattern pattern = pattern.compile(regStr);
+    Matcher matcher = pattern.matcher(content);
+    while(matcher.find()){
+        System.out.println("找到:" + matcher.group(0));//会匹配到符合条件的字符串1987
+        System.out.println("找到:" + matcher.group("g1"));//根据组名g1会匹配到符合条件的字符串的第一组19
+        System.out.println("找到:" + matcher.group("t2"));//根据组名t2会匹配到符合条件的字符串的第二组87
+    }
+    ```
+
+- 非捕获分组：不能用`match.group()`去取
+
+    - ```java
+        (?:pattern)
+        //找出苏州微软、上海微软、美国微软
+        String content = "苏州微软|上海微软|美国微软|上海腾讯|深圳腾讯";
+        String resStr = "苏州微软|上海微软|美国微软";
+        String resStr = "(?:苏州|上海|美国)微软";//二者的正则效果一致，虽然有括号，但是并不是分组不能用group()去取
+        ```
+        
+    - ```java
+        (?=pattern)
+        //找到微软这个关键字，但是要求只是查找苏州微软、上海微软中包含的微软
+        String content = "苏州微软|上海微软|美国微软|上海腾讯|深圳腾讯";
+        String resStr = "(?=苏州|上海)微软";//会查找出苏州微软和上海微软，美国微软会被过滤掉
+        ```
+        
+    - ```java
+        (?!pattern)
+        //找到微软这个关键字，但是要求不是查找苏州微软、上海微软中包含的微软（相当于取反）
+        String content = "苏州微软|上海微软|美国微软|上海腾讯|深圳腾讯";
+        String resStr = "(?!苏州|上海)微软";//会查找出美国微软，苏州微软和上海微软会被过滤掉
+        ```
