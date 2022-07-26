@@ -1,4 +1,4 @@
-package com.LeetCode.Array_;
+package com.LeetCode.Array_.BinarySearch;
 
 @SuppressWarnings({"all"})
 public class M_34 {
