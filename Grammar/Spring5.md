@@ -15,3 +15,29 @@
 
 ###### IOC容器
 
+- 什么是IOC
+
+  - 控制反转，把对象创建和对象创建之间的调用过程，交给Spring进行管理
+  - 使用IOC的目的是为了降低耦合度
+
+- IOC底层原理（使用了XML解析、工厂设计模式、反射技术）
+
+- IOC过程
+
+  - 第一步：XML配置文件，配置创建的对象
+
+    ```xml
+    <bean id="dao" class="com.edu.UserDao"></bean>
+    ```
+
+  - 第二步：有service类和DAO类，创建工厂类
+
+    ```java
+    public class UserFactory {
+        public static UserDAO getDAO() {
+    
+        }
+    }
+    ```
+
+    
