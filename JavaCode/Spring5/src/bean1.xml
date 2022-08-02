@@ -22,7 +22,7 @@
         <constructor-arg name="id" value="001"></constructor-arg>
         <constructor-arg name="name" value="数据结构与算法"></constructor-arg>
         <!-- 也可以通过索引值去定位要注入的属性-->
-        <constructor-arg index="1" value="第1个属性"></constructor-arg>
+        <!-- <constructor-arg index="1" value="第1个属性"></constructor-arg>-->
     </bean>
 
 </beans>
