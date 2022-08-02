@@ -4,17 +4,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-public class UserFactory {
-
+public class test {
     @Test
-    public void test() {
-        //加载Spring配置文件
+    public void testUser1() {
         ApplicationContext context = new ClassPathXmlApplicationContext("bean1.xml");
-
-        //获取配置并创建对象
         User user = context.getBean("user", User.class);
-
-        System.out.println(user);
+        user.testDemo();
     }
 
+    @Test
+    public void testOrder1(){
+        ApplicationContext context = new ClassPathXmlApplicationContext("bean1.xml");
+        Order order = context.getBean("order", Order.class);
+        order.testOrderDemo();
+    }
 }
