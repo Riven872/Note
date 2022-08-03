@@ -94,45 +94,302 @@
 
 - IOC操作Bean管理之注入属性（基于注解方式实现，即基于XML方式注入属性）
 
-    - 1、DI：依赖注入，就是注入属性
+- DI：依赖注入，就是注入属性
 
-        - 调用set方法注入
+    - 调用set方法注入
 
-            - 1、创建类，定义属性和对应的set方法
-            - 2、在配置文件配置对象创建，配置属性注入
+        - 1、创建类，定义属性和对应的set方法
+        - 2、在配置文件配置对象创建，配置属性注入
 
-                ```xml
-                <!-- 配置User对象的创建-->
-                <bean id="user" class="com.edu.IoC01.User">
-                    <!-- 使用property标签完成属性的注入
-                             name:类里面属性名称
-                             value:向属性注入的值
-                        -->
-                    <property name="age" value="25"></property>
-                    <property name="name" value="龙城"></property>
+            ```xml
+            <!-- 配置User对象的创建-->
+            <bean id="user" class="com.edu.IoC01.User">
+                <!-- 使用property标签完成属性的注入
+                         name:类里面属性名称
+                         value:向属性注入的值
+                    -->
+                <property name="age" value="25"></property>
+                <property name="name" value="龙城"></property>
+            </bean>
+            <!-- 要求必须有对应的set方法，否则会报错 -->
+            ```
+
+    - 用有参的构造方法注入
+
+        - 1、创建类，定义属性，创建属性对应有参的构造函数
+
+        - 2、在 Spring配置文件中进行配置
+
+            ```xml
+            <!-- 有参构造函数注入属性：配置Order对象的创建-->
+            <bean id="order" class="com.edu.IoC01.Order">
+                <!-- 如果不写此标签会报错，因为类中没有无参的构造器，用此标签后，会通过有参的构造器创建类
+                         name:类里面属性名称
+                         value:向属性注入的值
+                    -->
+                <constructor-arg name="id" value="001"></constructor-arg>
+                <constructor-arg name="name" value="数据结构与算法"></constructor-arg>
+                <!-- 也可以通过索引值去定位要注入的属性-->
+                <constructor-arg index="1" value="第1个属性"></constructor-arg>
+            </bean>
+            ```
+
+    - p名称空间注入（了解有这么个注入方式就完了，几乎不用，底层用到set方法的注入）
+
+    - XML注入其他类型的属性
+
+        - Null值
+
+            ```xml
+            <!-- 给属性设置空值，因为用的是property标签，因此要求该字段有对应的set方法-->
+            <property name="price">
+                <null/>
+            </property>
+            ```
+
+        - 特殊符号
+
+            ```xml
+            <!-- 给属性值设置特殊字符，将特殊字符写到CDATA中-->
+            <property name="author">
+                <value><![CDATA[<<教员>>]]></value>
+            </property>
+            ```
+
+- 注入属性-外部bean（只是换了种写法，也可以用内部bean实现）
+
+    - 1、例如在UserService类中，定义了UserDao类型的属性，需要持有UserDao对象
+
+    - 2、在Spring配置文件中
+
+        ```xml
+        <!--创建userService对象-->
+        <bean id="userService" class="com.edu.IOC02.service.UserService">
+            <!--使用ref属性，创建userDao对象bean标签id值-->
+            <property name="userDao" ref="userDaoImpl"></property>
+        </bean>
+        
+        <!--创建userDaoImpl对象-->
+        <!--接口不能实例化，因此class内写该接口的实现类-->
+        <bean id="userDaoImpl" class="com.edu.IOC02.dao.UserDaoImpl"></bean>
+        ```
+
+- 注入属性-内部bean（只是换了种写法，也可以用外部bean实现）
+
+    - 在实体类之间表示一对多关系，比如部门：员工 = 1：N
+
+    - 部门类
+
+        ```java
+        public class Dept {
+            private String name;
+            //此处省略set方法
+        }
+        ```
+
+    - 员工类
+
+      ```java
+      public class Emp {
+          private String name;
+          private String gender;
+          private Dept dept;//表明员工属于哪个部门
+          //此处省略set方法
+      }
+      ```
+
+    - Spring配置文件
+
+      ```xml
+      <!--内部bean-->
+      <bean id="emp" class="com.edu.bean.Emp">
+          <!--设置两个普通属性-->
+          <property name="name" value="tom"></property>
+          <property name="gender" value="男"></property>
+          <!--设置对象类型属性-->
+          <property name="dept">
+              <bean id="dept" class="com.edu.bean.Dept">
+                  <property name="name" value="研发部"></property>
+              </bean>
+          </property>
+      </bean>
+      <!--也可以使用property标签的ref属性，在外部进行bean创建后，通过ref引入-->
+      ```
+
+- 注入属性-级联赋值（就是通过外部bean赋值，创建完bean之后多加了property标签）
+
+    - 方法一：
+
+        ```xml
+        <!--级联bean-->
+        <bean id="emp" class="com.edu.bean.Emp">
+            <!--设置两个普通属性-->
+            <property name="name" value="tom"></property>
+            <property name="gender" value="男"></property>
+            <!--设置对象类型属性-->
+            <property name="dept" ref="dept"></property>
+        </bean>
+        <bean id="dept" class="com.edu.bean.Dept">
+            <!--给级联bean内的属性赋值-->
+            <property name="name" value="产品部"></property>
+        </bean>
+        ```
+
+    - 方法二：
+
+        ```xml
+        <!--级联bean-->
+        <bean id="emp" class="com.edu.bean.Emp">
+            <!--设置两个普通属性-->
+            <property name="name" value="tom"></property>
+            <property name="gender" value="男"></property>
+            <!--设置对象类型属性-->
+            <property name="dept" ref="dept"></property>
+            <!--要求emp类中的要有dept的get方法-->
+            <property name="dept.name" value="产品部"></property>
+        </bean>
+        <bean id="dept" class="com.edu.bean.Dept"></bean>
+        ```
+
+- 注入属性-集合类型（数组、List、Set、Map）
+
+    - 类中定义集合类型的属性
+
+        ```java
+        //省略了每个属性的set方法
+        public class Stu {
+            //数组类型属性
+            private String[] array;
+        
+            //List集合类型属性
+            private List<String> list;
+        
+            //Map集合类型属性
+            private Map<String, String> map;
+        
+            //Set集合类型属性
+            private Set<String> set;
+        }
+        ```
+
+    - Spring配置文件
+
+        ```xml
+        <!--创建对象-->
+        <bean id="stu" class="com.edu.IOC03.Stu">
+            <!--数组类型属性注入-->
+            <property name="array">
+                <array>
+                    <value>数据结构</value>
+                    <value>操作系统</value>
+                    <value>计算机网络</value>
+                    <value>计算机组成原理</value>
+                </array>
+            </property>
+        
+            <!--List类型属性注入-->
+            <property name="list">
+                <list>
+                    <value>链表</value>
+                    <value>树</value>
+                    <value>图</value>
+                </list>
+            </property>
+        
+            <!--Set类型属性注入-->
+            <property name="set">
+                <set>
+                    <value>MySQL</value>
+                    <value>Redis</value>
+                </set>
+            </property>
+        
+            <!--Map类型属性注入-->
+            <property name="map">
+                <map>
+                    <entry key="顺序表" value="队列"></entry>
+                    <entry key="树" value="二叉树"></entry>
+                    <entry key="图" value="有向无环强连通图"></entry>
+                </map>
+            </property>
+        </bean>
+        ```
+
+    - 在集合里面设置对象类型的值
+
+        - 类中定义对象集合类型属性
+
+            ```java
+            //省略了该属性的set方法
+            public class Stu {
+                //对象集合类型属性
+                private List<Course> courses;
+            }
+            ```
+
+        - Spring配置文件
+
+            ```xml
+            <!--创建对象-->
+            <bean id="stu" class="com.edu.IOC03.Stu">
+                <!--List类型属性注入，值是对象类型-->
+                <property name="courses">
+                    <list>
+                        <!--使用ref标签添加对象-->
+                        <ref bean="course1"></ref>
+                        <ref bean="course2"></ref>
+                    </list>
+                </property>
+            </bean>
+            
+            <!--创建多个course对象-->
+            <bean id="course1" class="com.edu.IOC03.Course">
+                <property name="name" value="Spring5框架"></property>
+            </bean>
+            <bean id="course2" class="com.edu.IOC03.Course">
+                <property name="name" value="SpringMVC"></property>
+            </bean>
+            ```
+
+    - 把集合注入部分提取出来
+
+        - 在Spring配置文件中引入名称空间Util
+
+            ```xml
+            <beans xmlns="http://www.springframework.org/schema/beans"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns:util="http://www.springframework.org/schema/util"
+                   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                                       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+            ```
+
+        - 使用util标签完成List集合注入提取
+
+            ```xml
+            <?xml version="1.0" encoding="UTF-8"?>
+            <beans xmlns="http://www.springframework.org/schema/beans"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns:util="http://www.springframework.org/schema/util"
+                   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                                       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+            
+                <!--提取List集合类型属性-->
+                <!--也有util:map等标签，此处以list为例-->
+                <util:list id="bookList">
+                    <!--现在演示的是提取字符串，以value为例，如果是对象，可以用ref，参考以前的写法-->
+                    <value>测试1</value>
+                    <value>测试2</value>
+                    <value>测试3</value>
+                    <value>测试4</value>
+                </util:list>
+            
+                <!--将提取的部分进行注入到Stu类的List属性中-->
+                <!--先创建stu类-->
+                <bean id="stu" class="com.edu.IOC03.Stu">
+                    <!--将提取出的部分（公共部分）用ref属性获取-->
+                    <property name="list" ref="bookList"></property>
                 </bean>
-                <!-- 要求必须有对应的set方法，否则会报错 -->
-                ```
+            </beans>
+            ```
 
-        - 用有参的构造方法注入
-        
-            - 1、创建类，定义属性，创建属性对应有参的构造函数
-        
-            - 2、在 Spring配置文件中进行配置
-        
-                ```xml
-                <!-- 有参构造函数注入属性：配置Order对象的创建-->
-                <bean id="order" class="com.edu.IoC01.Order">
-                    <!-- 如果不写此标签会报错，因为类中没有无参的构造器，用此标签后，会通过有参的构造器创建类
-                             name:类里面属性名称
-                             value:向属性注入的值
-                        -->
-                    <constructor-arg name="id" value="001"></constructor-arg>
-                    <constructor-arg name="name" value="数据结构与算法"></constructor-arg>
-                    <!-- 也可以通过索引值去定位要注入的属性-->
-                    <constructor-arg index="1" value="第1个属性"></constructor-arg>
-                </bean>
-                ```
-        
-                
-
+            

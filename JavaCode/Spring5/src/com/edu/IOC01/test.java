@@ -1,4 +1,4 @@
-package com.edu.IoC01;
+package com.edu.IOC01;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;

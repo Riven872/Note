@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+
+    <!--创建对象-->
+    <bean id="stu" class="com.edu.IOC03.Stu">
+        <!--数组类型属性注入-->
+        <property name="array">
+            <array>
+                <value>数据结构</value>
+                <value>操作系统</value>
+                <value>计算机网络</value>
+                <value>计算机组成原理</value>
+            </array>
+        </property>
+
+        <!--List类型属性注入-->
+        <property name="list">
+            <list>
+                <value>链表</value>
+                <value>树</value>
+                <value>图</value>
+            </list>
+        </property>
+
+        <!--Set类型属性注入-->
+        <property name="set">
+            <set>
+                <value>MySQL</value>
+                <value>Redis</value>
+            </set>
+        </property>
+
+        <!--Map类型属性注入-->
+        <property name="map">
+            <map>
+                <entry key="顺序表" value="队列"></entry>
+                <entry key="树" value="二叉树"></entry>
+                <entry key="图" value="有向无环强连通图"></entry>
+            </map>
+        </property>
+
+        <!--List类型属性注入，值是对象类型-->
+        <property name="courses">
+            <list>
+                <!--使用ref标签添加对象-->
+                <ref bean="course1"></ref>
+                <ref bean="course2"></ref>
+            </list>
+        </property>
+    </bean>
+
+    <!--创建多个course对象-->
+    <bean id="course1" class="com.edu.IOC03.Course">
+        <property name="name" value="Spring5框架"></property>
+    </bean>
+    <bean id="course2" class="com.edu.IOC03.Course">
+        <property name="name" value="SpringMVC"></property>
+    </bean>
+</beans>

@@ -1,8 +1,9 @@
-package com.edu.IoC01;
+package com.edu.IOC01;
 
 public class User {
     private Integer age;
     private String name;
+    private String birthday;
 
     private void add() {
         System.out.println("我是User类的add方法");
@@ -11,9 +12,10 @@ public class User {
     public User() {
     }
 
-    public User(Integer age, String name) {
+    public User(Integer age, String name, String birthday) {
         this.age = age;
         this.name = name;
+        this.birthday = birthday;
     }
 
     @Override

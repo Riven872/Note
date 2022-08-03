@@ -4,7 +4,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <!-- set方法注入属性：配置User对象的创建-->
-    <bean id="user" class="com.edu.IoC01.User">
+    <bean id="user" class="com.edu.IOC01.User">
         <!-- 使用property标签完成属性的注入
              name:类里面属性名称
              value:向属性注入的值
@@ -14,13 +14,23 @@
     </bean>
 
     <!-- 有参构造函数注入属性：配置Order对象的创建-->
-    <bean id="order" class="com.edu.IoC01.Order">
+    <bean id="order" class="com.edu.IOC01.Order">
         <!-- 如果不写此标签会报错，因为类中没有无参的构造器，用此标签后，会通过有参的构造器创建类
              name:类里面属性名称
              value:向属性注入的值
         -->
         <constructor-arg name="id" value="001"></constructor-arg>
         <constructor-arg name="name" value="数据结构与算法"></constructor-arg>
+        <!-- 也可以通过索引值去定位要注入的属性-->
+        <!-- <constructor-arg index="1" value="第1个属性"></constructor-arg>-->
+        <!-- 给属性设置空值，因为用的是property标签，因此要求该字段有对应的set方法-->
+        <property name="price">
+            <null/>
+        </property>
+        <!-- 给属性值设置特殊字符，将特殊字符写到CDATA中-->
+        <property name="author">
+            <value><![CDATA[<<教员>>]]></value>
+        </property>
     </bean>
 
 </beans>
