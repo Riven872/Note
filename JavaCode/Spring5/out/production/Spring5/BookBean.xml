@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <!--提取List集合类型属性-->
+    <!--也有util:map等标签，此处以list为例-->
+    <util:list id="bookList">
+        <!--现在演示的是提取字符串，以value为例，如果是对象，可以用ref，参考以前的写法-->
+        <value>测试1</value>
+        <value>测试2</value>
+        <value>测试3</value>
+        <value>测试4</value>
+    </util:list>
+
+    <!--将提取的部分进行注入到Stu类的List属性中-->
+    <!--先创建stu类-->
+    <bean id="stu" class="com.edu.IOC03.Stu">
+        <!--将提取出的部分（公共部分）用ref属性获取-->
+        <property name="list" ref="bookList"></property>
+    </bean>
+</beans>

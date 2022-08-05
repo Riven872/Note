@@ -18,4 +18,11 @@ public class test {
         Stu stu = context.getBean("stu", Stu.class);
         System.out.println(stu);
     }
+
+    @Test
+    public void test3() {
+        ApplicationContext context = new ClassPathXmlApplicationContext("bean_IOC3.xml");
+        Stu stu = context.getBean("stu", Stu.class);
+        System.out.println(stu);
+    }
 }

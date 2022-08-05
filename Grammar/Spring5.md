@@ -392,4 +392,106 @@
             </beans>
             ```
 
+- IOC操作Bean管理中的Bean分类
+
+    - 1、普通Bean，如下class中写的是Stu，则返回的实例也是Stu（配置文件中定义Bean类型就是返回类型）
+
+        ```xml
+        <bean id="stu" class="com.edu.IOC03.Stu">
+        ```
+
+    - 2、工厂Bean（在配置文件中定义Bean类型可以和返回类型不一样）
+
+        - 1、创建类，让这个类作为工厂Bean，实现接口FactoryBean
+
+        - 2、实现接口里的方法，在实现的方法中定义返回的Bean类型
+
+            ```java
+            //泛型中注明的是要返回的实例类型
+            public class MyBean implements FactoryBean<Emp> {
+                //该方法的返回值跟类声明的泛型一致，表明返回的类型
+                @Override
+                public Emp getObject() throws Exception {
+                    //通过new的方式来返回实例类型
+                    return new Emp();
+                }
             
+                @Override
+                public Class<?> getObjectType() {
+                    return null;
+                }
+            
+                @Override
+                public boolean isSingleton() {
+                    return false;
+                }
+            }
+            ```
+
+            ```xml
+            <?xml version="1.0" encoding="UTF-8"?>
+            <beans xmlns="http://www.springframework.org/schema/beans"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+            
+            	<!--配置的是MyBean，但是返回的不是-->    
+                <bean id="myBean" class="com.edu.IOC4.FactoryBean.MyBean"></bean>
+            
+            </beans>
+            ```
+
+            ```java
+            public class test {
+                @Test
+                public void test1() {
+                    //读取配置文件
+                    ApplicationContext context = new ClassPathXmlApplicationContext("MyBean.xml");
+                    //读取配置文件中设置的id的值，但返回的实例类型可以不是配置里的
+                    Emp emp = context.getBean("myBean", Emp.class);
+                    System.out.println(emp);
+                }
+            }
+            ```
+
+- IOC操作Bean管理中Bean的作用域
+
+    - 1、在Spring中，可以设置创建Bean实例是单实例还是多实例
+
+    - 2、在Spring中，默认情况下，Bean是单实例
+
+    - 3、如何设置多实例还是单实例
+
+        ```xml
+        <!--使用bean标签中scope属性，如果不写的话默认是scope="singleton"，即单实例-->
+        <bean id="cat" class="com.edu.IOC4.Cat" scope="prototype"></bean>
+        ```
+
+        ```java
+        Cat cat1 = context.getBean("cat", Cat.class);
+        Cat cat2 = context.getBean("cat", Cat.class);
+        //对比二者的HashCode不同，即地址不同
+        //728739494
+        //2005733474
+        ```
+
+    - 4、`scope="singleton"`和`scope="prototype"`的区别：
+
+        - 1、singleton：加载Spring配置文件时就会创建单实例对象
+        - 2、prototype：不是在加载Spring配置文件时候创建对象，在调用getBean方法时创建多实例对象
+
+- IOC操作Bean管理中Bean的生命周期
+
+  - 1、通过构造器创建Bean实例（无参数构造）
+
+  - 2、为Bean的属性设置值和对其他Bean引用（调用Set方法）
+
+  - 3、调用Bean的初始化的方法（需要进行配置初始化的方法）
+
+    ```xml
+    <!--在类中定义一个方法，默认是不会执行，但用init-method属性指定后，会自动进行调用-->
+    <bean id="myBean" class="com.edu.IOC4.FactoryBean.MyBean" init-method="foo"></bean>
+    ```
+
+  - 4、Bean可以使用了（对象获取到了）
+
+  - 5、当容器关闭的时候，调用Bean的销毁的方法（需要进行配置销毁的方法）
