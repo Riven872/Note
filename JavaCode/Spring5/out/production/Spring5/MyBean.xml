@@ -3,7 +3,10 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="myBean" class="com.edu.IOC4.FactoryBean.MyBean"></bean>
-    <bean id="cat" class="com.edu.IOC4.Cat" scope="prototype"></bean>
+    <bean id="myBean" class="com.edu.IOC04.FactoryBean.MyBean" init-method="getObject"></bean>
+    <bean id="cat" class="com.edu.IOC04.Cat" scope="prototype"></bean>
+
+    <!--配置后置处理器-->
+    <bean id="myBeanPost" class="com.edu.IOC04.MyBeanPost"></bean>
 
 </beans>

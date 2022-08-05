@@ -14,7 +14,7 @@
     </bean>
 
     <!-- 有参构造函数注入属性：配置Order对象的创建-->
-    <bean id="order" class="com.edu.IOC01.Order">
+    <bean id="order" class="com.edu.IOC01.Order" >
         <!-- 如果不写此标签会报错，因为类中没有无参的构造器，用此标签后，会通过有参的构造器创建类
              name:类里面属性名称
              value:向属性注入的值

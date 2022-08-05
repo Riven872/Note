@@ -1,4 +1,4 @@
-package com.edu.IOC4.FactoryBean;
+package com.edu.IOC04.FactoryBean;
 
 import com.edu.bean.Emp;
 import org.springframework.beans.factory.FactoryBean;

@@ -485,13 +485,94 @@
 
   - 2、为Bean的属性设置值和对其他Bean引用（调用Set方法）
 
-  - 3、调用Bean的初始化的方法（需要进行配置初始化的方法）
+  - 3、把Bean实例传递Bean后置处理器
 
+  - 4、调用Bean的初始化的方法（需要进行配置初始化的方法）
+  
     ```xml
-    <!--在类中定义一个方法，默认是不会执行，但用init-method属性指定后，会自动进行调用-->
+    <!--在类中定义一个方法，默认是不会执行，但用init-method属性指定后，在bean初始化时会自动进行调用-->
     <bean id="myBean" class="com.edu.IOC4.FactoryBean.MyBean" init-method="foo"></bean>
     ```
 
-  - 4、Bean可以使用了（对象获取到了）
+  - 5、把Bean实例传递Bean后置处理器
+  
+  - 6、Bean可以使用了（对象获取到了）
+  
+  - 7、当容器关闭的时候，调用Bean的销毁的方法（需要进行配置销毁的方法）
+  
+      ```xml
+      <!--在类中定义一个方法，默认是不会执行，但用destroy-method属性指定后，在bean调用close方法销毁时会自动进行调用-->
+      <bean id="myBean" class="com.edu.IOC4.FactoryBean.MyBean" init-method="foo" destroy-method="bar"></bean>
+      ```
+  
+      ```java
+      //ApplicationContext没有close的方法，因此使用ClassPathXmlApplicationContext来读取bean
+      ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("MyBean.xml");
+      Cat cat1 = context.getBean("cat", Cat.class);
+      //当调用销毁方法时，
+      context.close();
+      ```
+  
+  - 注：配置后置处理器
+  
+      ```xml
+      <?xml version="1.0" encoding="UTF-8"?>
+      <beans xmlns="http://www.springframework.org/schema/beans"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+          
+          <!--配置后置处理器，适用于所有的Bean-->
+          <bean id="myBeanPost" class="com.edu.IOC04.MyBeanPost"></bean>
+      </beans>
+      ```
+  
+      ```java
+      //实现BeanPostProcessor接口
+      public class MyBeanPost implements BeanPostProcessor {
+          //该方法表示初始化之前调用
+          @Override
+          public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+              return null;
+          }
+      
+          //该方法表示初始化之后调用
+          @Override
+          public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+              return null;
+          }
+      }
+      ```
+  
+- IOC操作Bean管理中的XML自动装配
 
-  - 5、当容器关闭的时候，调用Bean的销毁的方法（需要进行配置销毁的方法）
+    - 1、根据指定装配规则（属性名称或者属性类型），Spring自动将匹配的属性值进行注入
+
+        ```xml
+        <!--实现自动装配
+            bean标签属性autowire，配置自动装配
+            autowire属性常用的两个值：
+                byName根据属性名称注入，注入值bean的id值和类属性名称一样
+                byType根据属性类型注入
+        -->
+        ```
+
+    - 2、根据名称自动装配
+
+        ```xml
+        <!--Emp类中，有 private Dept dept; 因此通过byName，会找到id值和类属性名称一样的bean，进行自动装配-->
+        <bean id="emp" class="com.edu.bean.Emp" autowire="byName"></bean>
+        <bean id="dept" class="com.edu.bean.Dept"></bean>
+        ```
+
+    - 3、根据类型自动装配
+
+        ```xml
+        <!--Emp类中，有 private Dept dept; 因此通过byType，会找到class类型和类属性定义类型一样的bean，进行自动装配-->
+        <bean id="emp" class="com.edu.bean.Emp" autowire="byType"></bean>
+        <bean id="dept1" class="com.edu.bean.Dept"></bean>
+        <!--但是如果有两个同一类型的Bean，会报错，byType只能找一个类型相匹配的Bean-->
+        <bean id="dept2" class="com.edu.bean.Dept"></bean>
+        ```
+
+- IOC操作Bean管理的引入外部属性文件
+
