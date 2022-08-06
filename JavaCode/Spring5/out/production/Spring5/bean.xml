@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!--开启组件扫描，如果要扫描多个包，可以用逗号隔开或者扫描包的上级目录-->
+    <context:component-scan base-package="com.edu.IOC05"></context:component-scan>
+
+    <!--use-default-filters="false"表示现在不使用默认filter，自己配置filter-->
+    <!--<context:component-scan base-package="com.edu.IOC05" use-default-filters="false">-->
+    <!--    &lt;!&ndash;include-filter表示扫描哪些内容，annotation表示扫描注解，Controller表示只扫描Controller注解&ndash;&gt;-->
+    <!--    <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>-->
+    <!--</context:component-scan>-->
+
+    <!--<context:component-scan base-package="com.edu.IOC05" use-default-filters="false">-->
+    <!--    &lt;!&ndash;exclude-filter相反，表示过滤哪些内容，表示Repository注解不进行扫描&ndash;&gt;-->
+    <!--    <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Repository"/>-->
+    <!--</context:component-scan>-->
+
+</beans>

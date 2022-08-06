@@ -1,4 +1,4 @@
-###### 概述
+##### 概述
 
 - Spring是轻量级的开源的JavaEE框架
 - Spring可以解决企业应用开发的复杂性
@@ -13,7 +13,7 @@
   - 方便进行事务操作
   - 降低API开发难度
 
-###### IOC容器
+##### IOC容器
 
 - 什么是IOC
 
@@ -68,6 +68,8 @@
     - Bean管理操作的两种方式
         - 1、基于XML配置文件方式实现
         - 2、基于注解方式实现
+
+###### IOC操作Bean管理基于XML方式
 
 - IOC操作Bean管理之创建对象（基于XML配置文件方式实现，即基于XML方式创建对象）
 
@@ -488,23 +490,23 @@
   - 3、把Bean实例传递Bean后置处理器
 
   - 4、调用Bean的初始化的方法（需要进行配置初始化的方法）
-  
+
     ```xml
     <!--在类中定义一个方法，默认是不会执行，但用init-method属性指定后，在bean初始化时会自动进行调用-->
     <bean id="myBean" class="com.edu.IOC4.FactoryBean.MyBean" init-method="foo"></bean>
     ```
 
   - 5、把Bean实例传递Bean后置处理器
-  
+
   - 6、Bean可以使用了（对象获取到了）
-  
+
   - 7、当容器关闭的时候，调用Bean的销毁的方法（需要进行配置销毁的方法）
-  
+
       ```xml
       <!--在类中定义一个方法，默认是不会执行，但用destroy-method属性指定后，在bean调用close方法销毁时会自动进行调用-->
       <bean id="myBean" class="com.edu.IOC4.FactoryBean.MyBean" init-method="foo" destroy-method="bar"></bean>
       ```
-  
+
       ```java
       //ApplicationContext没有close的方法，因此使用ClassPathXmlApplicationContext来读取bean
       ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("MyBean.xml");
@@ -512,9 +514,9 @@
       //当调用销毁方法时，
       context.close();
       ```
-  
+
   - 注：配置后置处理器
-  
+
       ```xml
       <?xml version="1.0" encoding="UTF-8"?>
       <beans xmlns="http://www.springframework.org/schema/beans"
@@ -525,7 +527,7 @@
           <bean id="myBeanPost" class="com.edu.IOC04.MyBeanPost"></bean>
       </beans>
       ```
-  
+
       ```java
       //实现BeanPostProcessor接口
       public class MyBeanPost implements BeanPostProcessor {
@@ -542,7 +544,7 @@
           }
       }
       ```
-  
+
 - IOC操作Bean管理中的XML自动装配
 
     - 1、根据指定装配规则（属性名称或者属性类型），Spring自动将匹配的属性值进行注入
@@ -576,3 +578,216 @@
 
 - IOC操作Bean管理的引入外部属性文件
 
+    - 1、场景举例：外部写一个数据库连接池的Properties的文件，然后在Spring配置中引入
+
+    - 2、创建数据库连接池Properties文件
+
+        ```properties
+        prop.driverClass=com.mysql.jdbc.Driver
+        prop.url=jdbc:mysql://localhost:3306/userDb
+        prop.userName=root
+        prop.passWord=123
+        ```
+
+    - 3、把外部的properties属性文件引入到Spring配置文件中（使用context命名空间）
+
+        ```xml
+        <!--引入外部文件-->
+        <context:property-placeholder location="JDBC.properties"></context:property-placeholder>
+        
+        <!--配置连接池，value的值通过读取配置文件来获得，而不是写成固定的值，
+          用${key}来获取配置文件中对应的value值-->
+        <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+            <property name="driverClassName" value="${prop.driverClass}"></property>
+            <property name="url" value="${prop.url}"></property>
+            <property name="username" value="${prop.userName}"></property>
+            <property name="password" value="${prop.passWord}"></property>
+        </bean>
+        ```
+
+
+###### IOC操作Bean管理基于注解方式
+
+- Spring针对Bean管理中创建对象提供的注解
+
+  - 1、`@Component`，普通注解，都适用
+  - 2、`@Service`，一般用在业务逻辑层或Service层中
+  - 3、`@Controller`，一般用在web层中
+  - 4、`@Repository`，一般用在持久层或DAO层中
+  - 注：四个注解功能一直，都可以用来创建Bean实例，只是为了简化开发而分层使用
+
+- 基于注解方式实现对象的创建
+
+  - 1、引入`aop`依赖
+
+  - 2、开启组件扫描，来通知Spring扫描到哪个包的类中，有创建对象的注解
+
+    ```xml
+    <?xml version="1.0" encoding="UTF-8"?>
+    <beans xmlns="http://www.springframework.org/schema/beans"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:context="http://www.springframework.org/schema/context"
+           xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                               http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+    
+        <!--开启组件扫描，如果要扫描多个包，可以用逗号隔开或者扫描包的上级目录-->
+        <context:component-scan base-package="com.edu.IOC05"></context:component-scan>
+    
+    </beans>
+    ```
+
+    ```java
+    //其中value值可以不写，如果不写，默认值就是类名称且首字母小写
+    @Component(value = "userService") //效果跟<bean id="userService" class="..."></bean>一样
+    public class UserService {
+        public void add(){
+            System.out.println("我的UserService类的add方法");
+        }
+    }
+    ```
+
+  - 3、创建Bean对象
+
+    ```java
+    @Test
+    public void test1() {
+        ApplicationContext context = new ClassPathXmlApplicationContext("bean.xml");
+        UserService userService = context.getBean("userService", UserService.class);
+        userService.add();
+    }
+    ```
+
+  - 注：组件扫描的细节
+
+    ```xml
+    <?xml version="1.0" encoding="UTF-8"?>
+    <beans xmlns="http://www.springframework.org/schema/beans"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:context="http://www.springframework.org/schema/context"
+           xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                               http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+    
+        <!--开启组件扫描，如果要扫描多个包，可以用逗号隔开或者扫描包的上级目录-->
+        <context:component-scan base-package="com.edu.IOC05"></context:component-scan>
+    
+        <!--use-default-filters="false"表示现在不使用默认filter，自己配置filter-->
+        <context:component-scan base-package="com.edu.IOC05" use-default-filters="false">
+            <!--include-filter表示扫描哪些内容，annotation表示扫描注解，Controller表示只扫描Controller注解-->
+            <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+        </context:component-scan>
+    
+        <context:component-scan base-package="com.edu.IOC05" use-default-filters="false">
+            <!--exclude-filter相反，表示过滤哪些内容，表示Repository注解不进行扫描-->
+            <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Repository"/>
+        </context:component-scan>
+    
+    </beans>
+    ```
+
+- 基于注解方式实现属性的注入
+
+  - 1、`@Autowired`，根据属性类型进行自动装配
+
+    ```java
+    @Service
+    public class UserService {
+        //不需要有Set方法，因为注解底层自带
+        //根据类型装配，因此会去找UserDaoImpl对象注解
+        @Autowired
+        private UserDaoImpl userDao;
+    
+        public void add(){
+            System.out.println("UserService类的add方法");
+            userDao.update();
+        }
+    }
+    ```
+
+  - 2、`@Qualifier`，根据属性名称进行注入
+
+    ```java
+    //需要跟@Autowired一起来使用，当类型有多个时，Autowired就不清楚该用哪个注入，因此用Qualifier来根据名称确定要注入的对象的名称
+    @Service
+    public class UserService {
+        @Autowired
+        @Qualifier(value = "userServiceFoo")
+        private UserDaoImpl userDao;
+    
+        public void add(){
+            System.out.println("UserService类的add方法");
+            userDao.update();
+        }
+    }
+    
+    @Repository(value = "userServiceFoo")
+    public class UserDaoImpl implements IUserDao {
+        @Override
+        public void update() {
+            System.out.println("调用UserDao类中的update方法");
+        }
+    }
+    ```
+  
+  - 3、`@Resource`，可以根据类型注入，也可以根据名称注入
+  
+    注：`Resource`是`javax`包中的，Spring官方推荐用自己包里的`Autowired`或者是`Qualifier`
+  
+    ```java
+    @Service
+    public class UserService {
+        //@Resource 根据类型进行注入
+        //@Resource(name = "userServiceFoo") 根据名称进行注入
+        private UserDaoImpl userDao;
+    
+        public void add(){
+            System.out.println("UserService类的add方法");
+            userDao.update();
+        }
+    }
+    ```
+  
+  - 4、`@value`，注入普通类型属性
+  
+    ```java
+    @Service
+    public class UserService {
+        //name的注入值就是foobar
+        @Value(value = "foobar")
+        private String name;
+    
+        public void add(){
+            System.out.println(this.name);
+        }
+    }
+    ```
+  
+  - 注：前3个注入的是对象类型，第4个针对的是普通类型的属性
+
+- 完全注解开发
+
+  - 1、创建配置类，替代XML配置文件
+
+    ```java
+    package com.config;
+    
+    import org.springframework.context.annotation.ComponentScan;
+    import org.springframework.context.annotation.Configuration;
+    
+    @Configuration  //作为配置类，替代XML配置文件
+    @ComponentScan(basePackages = {"com.edu.IOC05"})  //相当于配置文件中开启的组件扫描
+    public class SpringConfig {
+        
+    }
+    ```
+
+  - 2、加载配置类并使用
+
+    ```java
+    public void test3() {
+        ApplicationContext context = new AnnotationConfigApplicationContext(SpringConfig.class);//加载配置类
+        UserService userService = context.getBean("userService", UserService.class);
+        userService.add();
+    }
+    ```
+
+    
