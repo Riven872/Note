@@ -33,5 +33,7 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="spring-aop-5.3.22" level="project" />
+    <orderEntry type="library" name="spring-aspects-5.3.22" level="project" />
+    <orderEntry type="library" name="aopalliance-1.0" level="project" />
   </component>
 </module>
