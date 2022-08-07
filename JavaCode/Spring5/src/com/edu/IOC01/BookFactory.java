@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-public class UserFactory {
+public class BookFactory {
 
     @Test
     public void test() {

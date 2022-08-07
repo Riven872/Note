@@ -946,19 +946,344 @@
         - 2、基于注解方式实现（使用）
     - 3、在项目工程中引入AOP相关的依赖
     - 4、切入点表达式
-        
+      
         - 1、作用：知道对哪个类里面的哪个方法进行增强
         
         - 2、语法结构：execution(\[权限修饰符]\[返回类型]\[类全路径]\[方法名称]\[参数列表])
         
             ```java
-            //对com.edu.AOP.BookDao类里面的add方法进行增强，其中*表示可以是public或者是private，返回类型可以省略
-            execution(* com.edu.AOP.BookDao.add(1,2))
+            //对com.edu.AOP.BookDao类里面的add方法进行增强，其中*表示可以是public或者是private，返回类型可以省略，两个..表示参数列表
+            execution(* com.edu.AOP.BookDao.add(..))
             //对com.edu.AOP.BookDao类里面的所有方法进行增强
-            execution(* com.edu.AOP.BookDao.*(1,2))
+            execution(* com.edu.AOP.BookDao.*(..))
             //对com.edu.AOP包里的所有类，类里面的所有方法进行增强
-            execution(* com.edu.AOP.*.*(1,2))    
+            execution(* com.edu.AOP.*.*(..))    
             ```
         
-            
+    
+- AOP操作（AspectJ注解）
 
+    - 1、创建类，在类里面定义方法
+
+        ```java
+        //被增强的类
+        public class User {
+            public void add() {
+                System.out.println("User类中的add方法");
+            }
+        }
+        ```
+
+    - 2、创建增强类（编写增强逻辑）
+
+        ```java
+        //增强的方法
+        public class UserProxy {
+            //前置通知
+            public void before() {
+                System.out.println("Before...");
+            }
+        }
+        ```
+
+    - 3、进行通知的配置
+
+        - 1、在Spring配置文件中，开启注解扫描
+
+            ```xml
+            <?xml version="1.0" encoding="UTF-8"?>
+            <beans xmlns="http://www.springframework.org/schema/beans"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns:context="http://www.springframework.org/schema/context"
+                   xmlns:aop="http://www.springframework.org/schema/aop"
+                   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                                       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                                       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+            
+                <!--开启注解扫描-->
+                <context:component-scan base-package="com.edu.AOP2"></context:component-scan>
+            
+            </beans>
+            ```
+
+        - 2、使用注解创建User和UserProxy对象
+
+            ```java
+            @Component
+            //被增强的类
+            public class User{
+                
+            }
+            
+            @Component
+            //增强的类
+            public class UserProxy {
+                
+            }
+            ```
+
+        - 3、在增强类上面添加注解`@Aspect`
+
+            ```java
+            @Component
+            @Aspect //生成代理对象
+            //增强的类
+            public class UserProxy {
+            
+            }
+            ```
+
+        - 4、在Spring配置文件中开启生成代理对象
+
+            ```xml
+            <?xml version="1.0" encoding="UTF-8"?>
+            <beans xmlns="http://www.springframework.org/schema/beans"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns:context="http://www.springframework.org/schema/context"
+                   xmlns:aop="http://www.springframework.org/schema/aop"
+                   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                                       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                                       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+            
+                <!--开启注解扫描-->
+                <context:component-scan base-package="com.edu.AOP2"></context:component-scan>
+            
+                <!--开始Aspect生成代理对象
+            		作用是把有@AspectJ注解的类生成代理对象
+              	-->
+                <aop:aspectj-autoproxy></aop:aspectj-autoproxy>
+            
+            </beans>
+            ```
+
+    - 4、配置不同类型的通知
+
+        - 1、在增强类中，在作为通知方法上面添加通知类型注解，使用切入点表达式配置（以前置通知为例）
+
+            ```java
+            //增强的类
+            @Component
+            @Aspect //生成代理对象
+            public class UserProxy {
+                //前置通知
+                //@Before表示前置通知，表示增强的是哪个包下的哪个类下的哪个方法
+                @Before(value = "execution(* com.edu.AOP2.User.add(..))")
+                public void before() {
+                    System.out.println("Before...");
+                }
+            }
+            ```
+
+        - 2、前置通知（`@Before`）、后置通知（`@AfterReturning`）、最终通知（`@After`）、环绕通知（`@Around`）、异常通知（`@AfterThrowing`）
+
+    - 5、细节问题
+
+        - 1、提取相同的切入点
+
+            ```java
+            @Component
+            @Aspect //生成代理对象
+            //增强的类
+            public class UserProxy {
+                //抽取相同的切入点，并注解在一个方法上
+                @Pointcut(value = "execution(* com.edu.AOP2.User.add(..))")
+                public void pointDemo() {
+            
+                }
+            
+                //前置通知
+                //@Before表示前置通知，表示增强的是哪个包下的哪个类下的哪个方法
+                @Before(value = "pointDemo()")
+                public void before() {
+                    System.out.println("Before...");
+                }
+            }
+            ```
+
+            - 2、有多个增强类对同一个方法进行增强，设置增强类的优先级
+
+            ```java
+            //在增强类上加注解@order(整数)，参数越小，优先级越高
+            @Component
+            @Aspect
+            @Order(3)
+            public class PersonProxy {
+                @Before(value = "execution(* com.edu.AOP2.User.add(..))")
+                public void before() {
+                    System.out.println("Person创建");
+                }
+            }
+            ```
+
+    - 6、完全注解开发
+    
+        ```java
+        @Configuration //作为配置类，替代XML配置文件
+        @ComponentScan(basePackages = {"com.edu.AOP2"}) //相当于配置文件中开启的组件扫描
+        @EnableAspectJAutoProxy(proxyTargetClass = true) //开始Aspect生成代理对象
+        public class config {
+            
+        }
+        ```
+    
+- AOP操作（AspectJ配置文件）：不做说明，了解即可
+
+##### JDBCTemplate
+
+- 什么是JDBCTemplate
+
+    - Spring框架对JDBC进行封装，使用JDBCTemplate方便实现对数据库的操作
+
+- 准备工作
+
+    - 1、引入依赖：Druid连接池、MysqlConnector、SpringJDBC、SpringTX、SpringORM
+
+    - 2、在Spring配置文件中配置数据库连接池
+
+        ```xml
+        <?xml version="1.0" encoding="UTF-8"?>
+        <beans xmlns="http://www.springframework.org/schema/beans"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+        
+            <!--数据库连接池-->
+            <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" destroy-method="close">
+                <property name="url" value="jdbc:mysql:///edudb01"/>
+                <property name="username" value="root"/>
+                <property name="password" value="123"/>
+                <property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+            </bean>
+        
+        </beans>
+        ```
+
+    - 3、配置JDBCTemplate对象，注入DataSource
+
+        ```xml
+        <?xml version="1.0" encoding="UTF-8"?>
+        <beans xmlns="http://www.springframework.org/schema/beans"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+        
+            <!--数据库连接池-->
+            <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" destroy-method="close">
+                <property name="url" value="jdbc:mysql:///edudb01"/>
+                <property name="username" value="root"/>
+                <property name="password" value="123"/>
+                <property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+            </bean>
+        
+            <!--创建JdbcTemplate对象，注入DataSource-->
+            <bean id="JdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+                <!--注入数据库连接池对象-->
+                <property name="dataSource" ref="dataSource"></property>
+            </bean>
+        
+        </beans>
+        ```
+
+    - 4、创建Service类和Dao类，在Dao中注入JdbcTemplate对象
+
+- jdbctemplate操作数据库——添加
+
+    - 1、对应数据库创建实体类
+
+    - 2、编写Service和Dao
+
+        - 1、在Dao进行数据库添加的操作
+
+        - 2、调用JdbcTemplate对象里面的Update方法实现添加操作
+
+            ```java
+            @Repository
+            public class BookDaoImp implements IBookDao {
+            
+                //注入JDBCTemplate
+                @Autowired
+                private JdbcTemplate jdbcTemplate;
+            
+                @Override
+                public void add(Book book) {
+                    //1、创建sql语句
+                    String sql = "INSERT INTO book VALUES(?,?,?)";
+                    //2、调用方法实现
+                    Object[] args = {book.getBookId(), book.getBookName(), book.getBookStatus()};
+                    int updateNum = jdbcTemplate.update(sql, args);
+            
+                    System.out.println(updateNum);
+                }
+            }
+            ```
+
+        - 3、测试类
+
+            ```java
+            public void test() {
+                ApplicationContext context = new ClassPathXmlApplicationContext("MysqlConnector.xml");
+                BookService service = context.getBean("bookService", BookService.class);
+            
+                //book对象在实际应用中，应该是页面上传过来的
+                Book book = new Book();
+                book.setBookId("001");
+                book.setBookName("数据结构");
+                book.setBookStatus("未借出");
+            
+                service.addBook(book);
+            }
+            ```
+
+- jdbctemplate操作数据库——修改、删除与添加差不多
+
+- jdbctemplate操作数据库——查询返回某个值
+
+    ```java
+    @Override
+    public int selectCount() {
+        String sql = "SELECT COUNT(1) FROM book";
+        //第二个参数是返回类型的Class
+        Integer count =  jdbcTemplate.queryForObject(sql, Integer.class);
+        return count;
+    }
+    ```
+
+- jdbctemplate操作数据库——查询返回对象
+
+    ```java
+    //示例：根据ID查找对应的Book内的数据
+    @Override
+    public Book findOne(String id) {
+        String sql = "SELECT * FROM book WHERE bookid = ?";
+        //第二个参数是RowMapper接口，针对返回不同类型数据，使用这个接口里面实现类完成数据封装
+        Book book = jdbcTemplate.queryForObject(sql, new BeanPropertyRowMapper<Book>(Book.class), id);
+        return book;
+    }
+    ```
+
+- jdbctemplate操作数据库——查询返回集合
+
+    ```java
+    @Override
+    public Book findAllBooks() {
+        String sql = "SELECT * FROM book";
+        //第二个参数是RowMapper接口，针对返回不同类型数据，使用这个接口里面实现类完成数据封装
+        List<Book> books = jdbcTemplate.query(sql, new BeanPropertyRowMapper<Book>(Book.class), id);
+        return book;
+    }
+    ```
+
+- jdbctemplate操作数据库——批量添加
+
+    ```java
+    /**
+    * 批量添加
+    *
+    * @param batchArgs 批量添加的值,Object数组：每个数组中放入填充占位符的值
+    */
+    @Override
+    public void batchAddBook(List<Object[]> batchArgs) {
+        String sql = "INSERT INTO book VALUES(?, ?, ?)";
+        int[] ints = jdbcTemplate.batchUpdate(sql, batchArgs);
+    }
+    ```
+
+- jdbctemplate操作数据库——批量删除（传入参数只要id）、批量修改（传入参数需要填充占位符的值）与批量添加类似

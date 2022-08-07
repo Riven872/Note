@@ -35,5 +35,7 @@
     <orderEntry type="library" name="spring-aop-5.3.22" level="project" />
     <orderEntry type="library" name="spring-aspects-5.3.22" level="project" />
     <orderEntry type="library" name="aopalliance-1.0" level="project" />
+    <orderEntry type="library" name="mysql-connector-java-5.1.46-bin" level="project" />
+    <orderEntry type="library" name="spring-jdbc-5.3.22" level="project" />
   </component>
 </module>
