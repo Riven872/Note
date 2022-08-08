@@ -1287,3 +1287,88 @@
     ```
 
 - jdbctemplate操作数据库——批量删除（传入参数只要id）、批量修改（传入参数需要填充占位符的值）与批量添加类似
+
+##### 事务
+
+- 事务添加到JavaEE三层结构中的Service层
+
+- Spring进行事务操作
+
+  - 编程式事务管理
+  - 声明式事务管理（推荐）
+
+- 声明式事务管理
+
+  - 基于注解方式（推荐）
+  - 基于XML配置文件方式
+
+- 在Spring进行声明式事务管理时，底层使用的是AOP原理
+
+- Spring事务管理提供一个接口，代表事务管理器，这个接口针对不同的ORM框架提供不同的实现类
+
+- 注解声明式事务管理
+
+  - 1、在Spring配置文件中创建事务管理器对象
+
+  - 2、在Spring配置文件中，开启事务注解（引入tx名称空间）
+
+    ```xml
+    <?xml version="1.0" encoding="UTF-8"?>
+    <beans xmlns="http://www.springframework.org/schema/beans"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:context="http://www.springframework.org/schema/context"
+           xmlns:tx="http://www.springframework.org/schema/tx"
+           xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                               http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                               http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+    
+        <!--组件扫描-->
+        <context:component-scan base-package="com.edu"/>
+    
+        <!--数据库连接池-->
+        <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" destroy-method="close">
+            <property name="url" value="jdbc:mysql:///edudb01"/>
+            <property name="username" value="root"/>
+            <property name="password" value="123"/>
+            <property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+        </bean>
+    
+        <!--创建JdbcTemplate对象，注入DataSource-->
+        <bean id="JdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+            <!--注入数据库连接池对象-->
+            <property name="dataSource" ref="dataSource"></property>
+        </bean>
+    
+        <!--创建事务管理器-->
+        <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+            <!--注入数据源，以表明是对哪个数据库进行事务操作-->
+            <property name="dataSource" ref="dataSource"></property>
+        </bean>
+    
+        <!--开启事务注解，并指定用的是哪个事务管理器-->
+        <tx:annotation-driven transaction-manager="transactionManager"></tx:annotation-driven>
+    </beans>
+    ```
+
+- 在实现类上或方法上添加注解`@Transactional`
+
+- 声明式事务管理参数配置
+
+  - 1、Propagation：事务传播行为 `@Transactional(propagation = Propagation.REQUIRED)`
+    - 多事务（并发事务）时，一个事务内的方法调用另一个事务内的方法，被调用的方法该如何进行
+  - 2、isolation：事务隔离 `@Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)`
+    - 脏读：一个未提交的事务读取到另一个未提交事务的数据
+    - 不可重复读：一个未提交的事务读取到另一个已提交事务修改的数据
+    - 幻读：一个未提交的事务读取到另一个已提交事务添加的数据
+    - 注：不可重复读可能发生在update,delete操作中，而幻读发生在insert操作中
+  - 3、timeout：超时时间 `@Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, timeout = -1)`
+    - 事务在一定时间内如果没有提交，则回滚
+    - 默认是-1，不超时，以秒为单位
+  - 4、readOnly：是否只读
+    - 读：查询操作 写：添加修改删除操作
+    - 默认值为false，表示可以查询、添加、修改、删除操作
+    - 置为true后，只能查询
+  - rollbackFor：回滚
+    - 设置出现哪些异常进行事务回滚
+  - noRollbackFor：不回滚
+    - 设置出现哪些异常不进行事务回滚
