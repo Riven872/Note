@@ -13,14 +13,14 @@
       <path>
         <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
         <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
-        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:Note" type="e8cecc67:BranchNodeDescriptor" />
       </path>
     </expand>
     <select />
   </component>
   <component name="ChangeListManager">
     <list default="true" id="69ea97ca-f676-4b59-b11b-512014f87245" name="默认的" comment="">
-      <change beforePath="$PROJECT_DIR$/../../Grammar/Spring5.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../Grammar/Spring5.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Grammar/Maven.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../Grammar/Maven.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -56,6 +56,7 @@
       <option name="presentableId" value="Default" />
       <updated>1660016689735</updated>
       <workItem from="1660016690997" duration="15000" />
+      <workItem from="1660060183335" duration="59000" />
     </task>
     <servers />
   </component>
@@ -72,6 +73,7 @@
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="WindowStateProjectService">
     <state x="2660" y="275" key="FileChooserDialogImpl" timestamp="1660016704093">
