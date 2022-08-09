@@ -1429,4 +1429,121 @@
         }
         ```
 
+##### Spring5框架新功能
+
+###### 通用的日志封装
+
+- Spring5已经移除了Log4jConfigListener，官方建议使用更高版本的Log4j2，且Spring5框架已经整个了Log4j2
+
+- 引入相应的jar包
+
+- 创建log4j2.xml配置文件（名字固定）
+
+  ```xml
+  <?xml version="1.0" encoding="utf-8" ?>
+  <!--日志级别以及优先级排序：OFF > FATAL > ERROR > WARN > INFO > DEBUG > TRACE > ALL-->
+  <!--Configuration后面的status用于设置log4j2自身内部的信息输出，可以不设置，当设置成true时，可以看到log4j2内部各种详细输出-->
+  <Configuration status="INFO">
+      <!--先定义所有的Appenders-->
+      <Appenders>
+          <console name="Console" target="SYSTEM_OUT">
+              <!--控制日志输出的格式-->
+              <PatternLaout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+          </console>
+      </Appenders>
+      <!--然后定义logger，只有定义了logger并引入的appender，appender才会生效-->
+      <!--root：用于指定项目的根日志，如果没有单独指定的Logger，则会使用root作为默认的日志输出-->
+      <Loggers>
+          <root level="info">
+              <appender-ref ref="Console"/>
+          </root>
+      </Loggers>
+  </Configuration>
+  ```
+
+- 手动输出日志
+
+  - 在要手动输出日志的类中添加属性
+
+    ```java
+    private static final Logger log = LoggerFactory.getLogger(当前类.class);
+    ```
+
+  - 进行日志的打印
+
+    ```java
+    log.info("日志嗷嗷嗷");
+    ```
+
+###### @Nullable注解
+
+- 使用在方法上面，表示方法的返回值可以为空
+
+  ```java
+  @Nullable
+  public int test5(){
+      return -1;
+  }
+  
+  @Nullable
+  String getId();
+  ```
+
+- 使用在属性上面，表示属性值可以为空
+
+  ```java
+  @Nullable
+  private String name;
+  ```
+
+- 使用在参数上面，表示参数值可以为空
+
+  ```java
+  public void test5(String id, @Nullable String name){
+      //...
+  }
+  ```
+
+
+###### Spring5核心容器支持函数式风格（Lambda表达式）
+
+- 函数式风格创建对象，交给Spring进行管理
+
+    ```java
+    public class foo {
+        //创建GenericApplicationContext对象
+        GenericApplicationContext context = new GenericApplicationContext();
+        //调用context的方法进行对象注册
+        context.refresh();
+        //如果通过自己new对象，Spring容器并不知道，因此需要注册到Spring容器中
+        context.registerBean("user1", User.Class, () -> new User());
+        //获取在Spring注册的对象
+        User user = (User) context.getBean("user1");
+    }
+    ```
+
+###### 支持整合JUnit5
+
+- 导入`import org.junit.jupiter.api.Test`包，使用`@Test`注解进行单元注册
+
+    ```java
+    @ExtendWith(SpringExtension.class)
+    @ContextConfiguration("classpath:bean.xml")
+    public class test {
         
+        @Test
+        public void test1() {
+            ApplicationContext context = new ClassPathXmlApplicationContext("bean5.xml");
+            Emp emp = context.getBean("emp", Emp.class);
+            System.out.println(emp);
+        }
+    }
+    ```
+
+- 使用复合注解将两个注解替代上面两个
+
+    ```java
+    @SpringJUnitConfig(locations = "classpath:bean.xml")
+    ```
+
+    
