@@ -74,14 +74,12 @@
 - 在配置文件中进行配置，将mirro标签整体放入mirros标签内
 
     ```xml
-    <mirrors>
-        <mirror>
-            <id>nexus-aliyun</id>
-            <mirrorOf>central</mirrorOf>
-            <name>Nexus aliyun</name>
-            <url>http://maven.aliyun.com/nexus/content/groups/public</url>
-        </mirror>
-    </mirrors>
+    <mirror>
+        <id>nexus-aliyun</id>
+        <mirrorOf>central</mirrorOf>
+        <name>Nexus aliyun</name>
+        <url>http://maven.aliyun.com/nexus/content/groups/public</url>
+    </mirror>
     ```
 
 配置Maven工程的基础JDK版本
@@ -107,7 +105,7 @@
 
 
 
-##### 根据“坐标”创建Maven工程
+##### 4、根据“坐标”创建Maven工程
 
 ###### 坐标
 
@@ -225,3 +223,50 @@
             - java：Java源代码
                 - com：package目录
 
+##### 5、在Maven工程中编写代码
+
+- 主体程序放在main目录下com.foo.bar.maven中，也就是包的最下一层
+- 测试程序放在test目录下com.foo.bar.maven中，也就是包的最下一层
+
+
+
+##### 6、执行Maven的构建命令
+
+###### 基本要求
+
+- 要求：在运行Maven中和构建操作相关的命令时，必须进入到pom.xml所在的目录。否则会报错
+- 除了`mvn -v`以外，其他的基本都是构建命令
+- 构建相关的命令要在pom.xml所在目录下运行，且操作哪个工程，就进入哪个工程的pom.xml目录
+
+###### 清理操作
+
+- 删除target目录
+
+###### 编译操作
+
+- 主体程序编译结果存放的目录：target/classes
+- 测试程序编译结果存放的目录：target/test-classes
+
+###### 测试操作
+
+- 测试的报告存放的目录：target/surefire-reports
+
+###### 打包操作
+
+- 打包的结果：jar
+- 存放的目录：target
+
+###### 安装操作
+
+- 就是将本地构建过程中生成的jar包存入到Maven本地仓库
+- 还会生成对应的pom.xml文件一起存入本地仓库
+
+
+
+##### 依赖的范围
+
+- 标签的位置：dependencies/dependency/scope
+- 标签的可选值：compile/test/provided/system/runtime/import
+- compile：主体业务功能所需要的依赖
+- test：测试过程中使用的jar包，只对test目录有效，且不会部署到服务器（即打war包时不会在里面）
+- provided：用于main目录和test目录，但不会部署到服务器上，原因是服务器中已经有这个依赖了，如果加入进来会产生冲突
