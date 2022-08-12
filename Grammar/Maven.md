@@ -263,10 +263,25 @@
 
 
 
-##### 依赖的范围
+##### 7、依赖的范围
 
 - 标签的位置：dependencies/dependency/scope
 - 标签的可选值：compile/test/provided/system/runtime/import
 - compile：主体业务功能所需要的依赖
 - test：测试过程中使用的jar包，只对test目录有效，且不会部署到服务器（即打war包时不会在里面）
 - provided：用于main目录和test目录，但不会部署到服务器上，原因是服务器中已经有这个依赖了，如果加入进来会产生冲突
+
+
+
+##### 8、依赖的传递性
+
+- 在A依赖B，B依赖C的前提下，C是否能传递到A（即在A没有配置对C的依赖的情况下，A里面能不能直接使用C），取决于B依赖C时使用的依赖范围
+- B依赖C使用的是compile，则可以传递
+- B依赖C使用的是test或provided，则不可以传递，因此在A需要C的jar包时，需要明确的配置依赖
+
+
+
+##### 9、依赖的排除
+
+
+
