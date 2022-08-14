@@ -57,6 +57,7 @@
       <updated>1660016689735</updated>
       <workItem from="1660016690997" duration="15000" />
       <workItem from="1660060183335" duration="59000" />
+      <workItem from="1660482742999" duration="131000" />
     </task>
     <servers />
   </component>
@@ -80,5 +81,9 @@
       <screen x="1920" y="0" width="1920" height="1040" />
     </state>
     <state x="2660" y="275" key="FileChooserDialogImpl/1920.0.1920.1040/0.0.1920.1040@1920.0.1920.1040" timestamp="1660016704093" />
+    <state x="682" y="243" key="new project wizard" timestamp="1660482873852">
+      <screen x="0" y="0" width="2560" height="1560" />
+    </state>
+    <state x="682" y="243" key="new project wizard/0.0.2560.1560/2560.-4.2560.1400@0.0.2560.1560" timestamp="1660482873852" />
   </component>
 </project>
