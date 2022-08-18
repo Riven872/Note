@@ -34,6 +34,7 @@
     </bean>
 
     <mvc:view-controller path="/" view-name="index"></mvc:view-controller>
+    <mvc:view-controller path="/test_rest" view-name="test_rest"></mvc:view-controller>
 
     <mvc:annotation-driven></mvc:annotation-driven>
 
