@@ -27,4 +27,9 @@ public class testController {
         model.addAttribute("testScope", "hello,Model");
         return "success";
     }
+
+    @RequestMapping("/test_view")
+    public String testView() {
+        return "test_view";
+    }
 }

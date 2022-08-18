@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:mvc="http://www.springframework.org/schema/mvc"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
        http://www.springframework.org/schema/beans/spring-beans.xsd
        http://www.springframework.org/schema/context
-       https://www.springframework.org/schema/context/spring-context.xsd">
+       https://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd">
 
 
     <!--扫描组件-->
@@ -26,10 +26,15 @@
                         <!-- 视图后缀 -->
                         <property name="suffix" value=".html"/>
                         <property name="templateMode" value="HTML5"/>
-                        <property name="characterEncoding" value="UTF-8" />
+                        <property name="characterEncoding" value="UTF-8"/>
                     </bean>
                 </property>
             </bean>
         </property>
     </bean>
+
+    <mvc:view-controller path="/" view-name="index"></mvc:view-controller>
+
+    <mvc:annotation-driven></mvc:annotation-driven>
+
 </beans>

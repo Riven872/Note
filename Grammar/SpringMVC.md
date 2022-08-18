@@ -118,7 +118,7 @@
     ```java
     //testPath表示资源路径 {id}表示传入的第一个参数 {username}表示传入的第二个参数
     @RequestMapping("/testPath/{id}/{username}")
-    public String testPath(@PathVariable("id") int id, @PathVariable("id") String username) {
+    public String testPath(@PathVariable("id") int id, @PathVariable("username") String username) {
         System.out.println("id:" + id + " username:" + username);
         return "success";
     }
@@ -326,5 +326,85 @@ public String testApplication(HttpSession session){
 
 
 
+##### 五、SpringMVC的视图
 
+- SpringMVC中的视图是View接口，视图的作用渲染数据，将模型Model中的数据展示给用户
 
+- SpringMVC视图的种类很多，默认有转发视图和重定向视图
+
+- 若使用的视图技术为Thymeleaf，在SpringMVC的配置文件中配置了Thymeleaf的视图解析器，由此视图解析器解析之后所得到的是ThymeleafView
+
+###### 1、ThymeleafView
+
+- 当控制器方法中所设置的视图名称没有任何前缀时，此时的视图名称会被SpringMVC配置文件中所配置的视图解析器解析，视图名称拼接视图前缀和视图后缀所得到的最终路径，会通过转发的方式实现跳转
+
+    ```java
+    @RequestMapping("/testHello")
+    public String testHello(){
+        //"hello"这个视图名称没有任何前后缀，会被Thymeleaf解析器解析，得到的视图就是ThymeleafView
+        return "hello";
+    }
+    ```
+
+###### 2、转发视图
+
+- SpringMVC中默认的转发视图是InternalResourceView
+
+- 当控制器方法中所设置的视图名称以"forward:"为前缀时，创建InternalResourceView视图，此时的视图名称不会被SpringMVC配置文件中所配置的视图解析器解析，而是会将前缀"forward:"去掉，剩余部分作为最终路径通过转发的方式实现跳转
+
+    ```java
+    @RequestMapping("/testForward")
+    public String testForward(){
+        //以forward:为前缀时，会去找到/testHello请求，再进行视图的解析
+        return "forward:/testHello";
+    }
+    
+    @RequestMapping("/testHello")
+    public String testHello(){
+        //通过转发到达这里，且该视图没有前缀，因此会跳转到success视图
+        return "success";
+    }
+    ```
+
+- 通过该方式，首先View会创建InternalResourceView类型的视图进行转发，然后会创建ThymeleafView类型的视图实现跳转
+
+###### 3、重定向视图
+
+- 转发：
+
+    - 浏览器发送一次请求（之后的请求是发生在服务器内部，因此请求的地址还是浏览器第一次发送请求的地址）
+    - 可以获取请求域中的数据（因为转发是一次请求，所以用到的Request对象是同一个）
+    - 可以访问Web-INF下的资源（因为Web-INF下的资源具有隐藏性，只能通过服务器内部去访问）
+    - 不能跨域（转发行为发生在服务器内部，因此只能访问服务器内部的资源）
+
+- 重定向：
+
+    - 浏览器发送两次请求，一次是访问Servlet，另一次访问重定向的地址（最终的地址是重定向的地址）
+    - 不可以获取请求域中的数据（因为重定向是两次请求，是两个不同的Request对象）
+    - 不可以访问Web-INF下的资源（不能通过浏览器去访问）
+    - 可以跨域（重定向行为发生在浏览器，因此可以访问更多的资源）
+
+- SpringMVC中默认的重定向视图是RedirectView
+
+- 当控制器方法中所设置的视图名称以"redirect:"为前缀时，创建RedirectView视图，此时的视图名称不会被SpringMVC配置文件中所配置的视图解析器解析，而是会将前缀"redirect:"去掉，剩余部分作为最终路径通过重定向的方式实现跳转
+
+    ```java
+    @RequestMapping("/testRedirect")
+    public String testRedirect(){
+        return "redirect:/testHello";
+    }
+    ```
+
+###### 4、视图控制器view-controller
+
+- 当控制器方法中，仅仅用来实现页面跳转，即只需要设置视图名称时，可以将处理器方法使用view-controller标签进行表示
+
+    ```xml
+    <!--
+    	path：设置处理的请求地址
+    	view-name：设置请求地址所对应的视图名称
+    -->
+    <mvc:view-controller path="/testView" view-name="success"></mvc:view-controller>
+    ```
+
+- 当SpringMVC中设置任何一个view-controller时，其他控制器中的请求映射将全部失效，此时需要在SpringMVC的核心配置文件中设置开启mvc注解驱动的标签：`<mvc:annotation-driven></mvc:annotation-driven>`
