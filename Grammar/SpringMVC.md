@@ -421,3 +421,67 @@ public String testApplication(HttpSession session){
 
 - HTTP 协议里面，四个表示操作方式的动词：GET、POST、PUT、DELETE
 - GET 用来获取资源，POST 用来新建资源，PUT 用来更新资源，DELETE 用来删除资源
+
+###### 2、HiddenHttpMethodFilter
+
+- SpringMVC 提供了 HiddenHttpMethodFilter 帮助我们将 POST 请求转换为 DELETE 或 PUT 请求
+- HiddenHttpMethodFilter 处理put和delete请求的条件：
+    - 1、当前请求的请求方式必须为post
+    - 2、当前请求必须传输请求参数_method
+
+
+
+##### 七、HttpMessageConverter
+
+- HttpMessageConverter，报文信息转换器，将请求报文转换为Java对象，或将Java对象转换为响应报文
+- HttpMessageConverter提供了两个注解和两个类型：
+    - @RequestBody，@ResponseBody
+    - RequestEntity，ResponseEntity
+
+###### 1、@RequestBody
+
+- @RequestBody可以获取请求体，需要在控制器方法设置一个形参，使用@RequestBody进行标识，当前请求的请求体就会为当前注解所标识的形参赋值
+
+    ```java
+    @RequestMapping("/testRequestBody")
+    //POST类型的请求才有请求体，且请求体类型为String
+    public String testRequestBody(@RequestBody String requestBody){
+        System.out.println("requestBody:"+requestBody);
+        return "success";
+    }
+    //输出结果为：requestBody:username=admin&password=123456
+    ```
+
+###### 2、RequestEntity
+
+- RequestEntity封装请求报文的一种类型，需要在控制器方法的形参中设置该类型的形参，当前请求的请求报文就会赋值给该形参
+
+- 通过getHeaders()获取请求头信息，通过getBody()获取请求体信息
+
+    ```java
+    @RequestMapping("/testRequestEntity")
+    public String testRequestEntity(RequestEntity<String> requestEntity){
+        System.out.println("requestHeader:"+requestEntity.getHeaders());
+        System.out.println("requestBody:"+requestEntity.getBody());
+        return "success";
+    }
+    //输出结果为：
+    //requestHeader:[host:“localhost:8080”, connection:“keep-alive”, content-length:“27”, cache-control:“max-age=0”, sec-ch-ua:"" Not A;Brand";v=“99”, “Chromium”;v=“90”, “Google Chrome”;v=“90"”, sec-ch-ua-mobile:"?0", upgrade-insecure-requests:“1”, origin:“http://localhost:8080”, user-agent:“Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36”]
+    //requestBody:username=admin&password=123
+    ```
+
+###### 3、@ResponseBody
+
+- @ResponseBody用于标识一个控制器方法，可以将该方法的返回值直接作为响应报文的响应体响应到浏览器
+
+    ```java
+    @RequestMapping("/testResponseBody")
+    @ResponseBody
+    public String testResponseBody(){
+        return "foobar";
+    }
+    //结果：浏览器页面显示foobar
+    ```
+
+    
+
