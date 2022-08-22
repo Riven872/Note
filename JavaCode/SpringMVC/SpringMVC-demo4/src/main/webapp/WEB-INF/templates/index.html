@@ -18,5 +18,35 @@
     <input type="text" name="pwd">
     <input type="submit" value="测试@RequestEntity">
 </form>
+
+<a th:href="@{/testResponseUser}">测试testResponseUser</a>
+
+<div id="app">
+    <a @click="testAxios" th:href="@{/testAxios}">SpringMVC处理Ajax</a>
+</div>
+
+<script type="text/javascript" th:src="@{/static/js/vue.js}"></script>
+<script type="text/javascript" th:src="@{/static/js/axios.min.js}"></script>
+<script type="text/javascript">
+    new Vue({
+        el: "#app",
+        methods: {
+            testAxios(event) {
+                axios({
+                    method: "post",
+                    url: event.target.href,
+                    params: {
+                        username: "admin",
+                        password: "123456"
+                    }
+                }).then(res => {
+                    alert(res.data);
+                });
+                event.preventDefault();
+            }
+        }
+    });
+</script>
+
 </body>
 </html>

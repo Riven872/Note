@@ -35,6 +35,8 @@
 
     <mvc:view-controller path="/" view-name="index"></mvc:view-controller>
 
+    <mvc:default-servlet-handler></mvc:default-servlet-handler>
+
     <mvc:annotation-driven></mvc:annotation-driven>
 
 </beans>
