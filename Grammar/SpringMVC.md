@@ -694,3 +694,91 @@ public String testApplication(HttpSession session){
 - preHandle：控制器方法执行之前执行preHandle()，其boolean类型的返回值表示是否拦截或放行，返回true为放行，即调用控制器方法；返回false表示拦截，即不调用控制器方法
 - postHandle：控制器方法执行之后执行postHandle()
 - afterComplation：处理完视图和模型数据，渲染视图完毕之后执行afterComplation()
+
+###### 3、preHandle()返回true时（即放行Controller方法），拦截器各个方法的执行顺序（可以参照源码来理解，很简单）
+
+```xml
+<!-- 配置两个拦截器，来演示执行的顺序 -->
+<ref bean="firstInterceptor"></ref>
+<ref bean="secondInterceptor"></ref>
+```
+
+- preHandle
+    - 会先执行firstInterceptor的，然后再执行secondInterceptor
+    - 因为有一个interceptorList，会按照配置顺序装入拦截器，然后遍历interceptorList列表，每次索引值加1（且该索引值会放入常量中保存下来），按顺序执行preHandle
+    - 如执行了3个拦截器之后，索引值常量是4（每次执行都++，因此是顺序执行，而且次数其实是5，因为MVC内置一个，配置了三个）
+- postHandle
+    - 会先执行secondInterceptor，再执行firstInterceptor
+    - 同样的interceptorList，但是此次会逆序执行，且没有保存索引值常量
+- afterComplation
+    - 会先执行secondInterceptor，再执行firstInterceptor
+    - 同样的interceptorList，但是此次会逆序执行，且是根据保存的索引值常量进行逆序执行（根据索引值5依次相减，因此是逆序执行）
+
+###### 4、preHandle()返回false时（即不调用Controller方法），拦截器各个方法的执行顺序（可以参照源码来理解，很简单）
+
+```xml
+<!-- 配置四个拦截器，来演示执行的顺序 -->
+<ref bean="firstInterceptor"></ref>
+<ref bean="secondInterceptor"></ref>
+<ref bean="thirdInterceptor"></ref><!-- 第三个拦截器置为false -->
+<ref bean="forthInterceptor"></ref>
+```
+
+- preHandle
+    - 因为第三个拦截器返回false，因此从第四个拦截器（是因为第三个返回了false，所以从第四个开始）开始之后的所有preHandle都不会去执行，而其他的preHandle根据顺序正常执行，且记录执行次数的索引值
+- postHandle
+    - 所有的postHandle都不会执行
+- afterComplation
+    - 因为第三个拦截器返回false，因此从第三个拦截器（因为索引值最大到有false之前一个的索引值）开始之后的所有afterComplation都不会去执行，且根据已经记录的索引值进行逆序执行
+
+
+
+##### 十、异常处理器
+
+- SpringMVC提供了一个处理控制器方法执行过程中所出现的异常的接口：HandlerExceptionResolver
+- HandlerExceptionResolver接口的实现类有：
+    - DefaultHandlerExceptionResolver：默认使用的
+    - SimpleMappingExceptionResolver：可以自定义出现异常之后的操作
+- SpringMVC提供了自定义的异常处理器SimpleMappingExceptionResolver
+
+###### 1、基于配置的异常处理
+
+```xml
+<bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+    <property name="exceptionMappings">
+        <props>
+        	<!--
+        		properties的键表示处理器方法执行过程中出现的异常
+        		properties的值表示若出现指定异常时，设置一个新的视图名称，跳转到指定页面
+        	-->
+            <!-- 当出现ArithmeticException时，跳转到error页面 -->
+            <prop key="java.lang.ArithmeticException">error</prop>
+        </props>
+    </property>
+    <!-- exceptionAttribute属性设置一个属性名，将出现的异常信息在请求域中进行共享，即“foo”为键，得到的异常为值放在请求域中 -->
+    <property name="exceptionAttribute" value="foo"></property>
+</bean>
+```
+
+###### 2、基于注解的异常处理
+
+```java
+//@ControllerAdvice将当前类标识为异常处理的组件
+@ControllerAdvice
+public class ExceptionController {
+
+    //@ExceptionHandler用于设置所标识方法处理的异常，即出现该类型的异常时，会执行该方法
+    @ExceptionHandler(ArithmeticException.class)
+    //ex表示当前请求处理中出现的异常对象
+    public String handleArithmeticException(Exception ex, Model model){
+    	//通过Model类型，将异常信息放在请求域中
+        model.addAttribute("ex", ex);
+        //若出现了该类型异常，则跳转至foo页面
+        return "foo";
+    }
+
+}
+```
+
+
+
