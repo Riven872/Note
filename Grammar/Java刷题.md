@@ -112,6 +112,32 @@ private void f1() {}
 - C：static final 可以表达在一起来修饰方法，表示是该方法是静态的不可重写的方法
 - D：private 修饰方法（这太常见的）表示私有方法，本类可以访问，外界不能访问
 
+2、下面代码输出是？
+
+```java
+enum AccountType
+{
+    SAVING, FIXED, CURRENT;
+    private AccountType()
+    {
+        System.out.println("It is a account type");
+    }
+}
+class EnumOne
+{
+    public static void main(String[]args)
+    {
+        System.out.println(AccountType.FIXED);
+    }
+}
+```
+
+答案：编译正确，输出”It is a account type”thrice followed by”FIXED”
+
+解析：
+
+- 枚举类有三个实例，故调用三次构造方法，打印三次It is a account type
+
 
 
 ###### 异常处理
