@@ -9,4 +9,7 @@
         INSERT INTO t_user VALUES (null, 'admin', '123456', 23, '男', '12345@qq.com')
     </insert>
 
+    <update id="updateUser">
+        UPDATE t_user SET username = '张三' WHERE id = 4
+    </update>
 </mapper>

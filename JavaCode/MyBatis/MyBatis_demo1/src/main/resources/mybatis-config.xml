@@ -11,14 +11,15 @@
             <!--数据源，POOLED表示使用的是数据库连接池-->
             <dataSource type="POOLED">
                 <property name="driver" value="com.mysql.cj.jdbc.Driver"/>
-                <property name="url" value="jdbc:mysql://localhost:3306/MyBatis"/>
+                <property name="url" value="jdbc:mysql://localhost:3306/MyBatis?useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"/>
                 <property name="username" value="root"/>
-                <property name="password" value="123456"/>
+                <property name="password" value="123"/>
             </dataSource>
         </environment>
     </environments>
     <!--引入映射文件-->
     <mappers>
-        <mapper resource="mappers/UserMapper.xml"/>
+        <!--<mapper resource="mappers/UserMapper.xml"/>-->
+        <package name="com.edu.mybatis.mapper"/>
     </mappers>
 </configuration>
