@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.mybatis.mapper.UserMapper">
+
+    <!--根据id去匹配com.edu.mybatis.mapper.UserMapper中的insertUser方法，id表示包中的唯一方法名-->
+    <insert id="insertUser">
+        INSERT INTO t_user VALUES (null, 'admin', '123456', 23, '男', '12345@qq.com')
+    </insert>
+
+</mapper>
