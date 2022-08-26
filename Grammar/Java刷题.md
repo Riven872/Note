@@ -4,6 +4,16 @@
 
 2、实例方法是指普通的方法，类方法是指static修饰的方法
 
+3、System.out.println()中
+
+- System是java.lang中的类
+- out为System中的一个静态成员
+- out是java.io.PrintStream类的对象
+- println()是java.io.PrintStream类的方法
+- 即：类.静态方法.println()方法
+
+4、不是关键字的有：true、false、null、sizeof、friendly
+
 
 
 ###### String类、包装类、数据类型
