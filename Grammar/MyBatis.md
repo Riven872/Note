@@ -167,6 +167,8 @@ public class MyBatisTest {
 <select>
 ```
 
+
+
 ##### 二、核心配置文件详解
 
 - 核心配置文件中的标签必须按照固定的顺序(有的标签可以不写，但顺序一定不能乱)：
@@ -255,4 +257,335 @@ public class MyBatisTest {
     </mappers>
 </configuration>
 ```
+
+
+
+##### 三、MyBatis获取参数值的两种方式
+
+- MyBatis获取参数值的两种方式：${}和#{}
+- ${}的本质就是字符串拼接
+- #{}的本质就是占位符赋值
+- ${}使用字符串拼接的方式拼接sql，若为字符串类型或日期类型的字段进行赋值时，需要手动加单引号
+- #{}使用占位符赋值的方式拼接sql，此时为字符串类型或日期类型的字段进行赋值时，可以自动添加单引号
+
+###### 1、单个字面量类型的参数
+
+- 若mapper接口中的方法参数为单个的字面量类型，此时可以使用${}和#{}以任意的名称（最好见名识意）获取参数的值
+- ${}需要手动加单引号
+
+```xml
+<!--User getUserByUsername(String username);-->
+<select id="getUserByUsername" resultType="User">
+	select * from t_user where username = #{username}
+</select>
+
+<!--User getUserByUsername(String username);-->
+<select id="getUserByUsername" resultType="User">  
+	select * from t_user where username = '${username}'  
+</select>
+```
+
+###### 2、多个字面量类型的参数
+
+- 若mapper接口中的方法参数为多个时，此时MyBatis会自动将这些参数放在一个map集合中
+    - 以arg0,arg1…为键，以参数为值
+    - 以param1,param2…为键，以参数为值
+- 因此只需要通过${}和#{}访问map集合的键就可以获取相对应的值
+- ${}需要手动加单引号
+- 使用arg或者param都行，要注意的是，arg是从arg0开始的，param是从param1开始的
+
+```xml
+<!--User checkLogin(String username,String password);-->
+<select id="checkLogin" resultType="User">  
+	select * from t_user where username = #{arg0} and password = #{arg1}  
+</select>
+
+<!--User checkLogin(String username,String password);-->
+<select id="checkLogin" resultType="User">
+	select * from t_user where username = '${param1}' and password = '${param2}'
+</select>
+```
+
+###### 3、map集合类型的参数
+
+- 若mapper接口中的方法需要的参数为多个时，此时可以手动创建map集合，将这些数据放在map中只需要通过${}和#{}访问map集合的键就可以获取相对应的值
+- ${}需要手动加单引号
+
+```xml
+<!--User checkLoginByMap(Map<String,Object> map);-->
+<select id="checkLoginByMap" resultType="User">
+	select * from t_user where username = #{username} and password = #{password}
+</select>
+```
+
+```java
+@Test
+public void checkLoginByMap() {
+	SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+	ParameterMapper mapper = sqlSession.getMapper(ParameterMapper.class);
+    //手动创建Map集合，自定义键值对，在用Mybatis取的时候，可以用自定义的键去取
+	Map<String,Object> map = new HashMap<>();
+	map.put("usermane","admin");
+	map.put("password","123456");
+	User user = mapper.checkLoginByMap(map);
+	System.out.println(user);
+}
+```
+
+###### 4、实体类类型的参数
+
+- 若mapper接口中的方法参数为实体类对象时此时可以使用${}和#{}，通过访问实体类对象中的属性名获取属性值
+- ${}需要手动加单引号
+
+```xml
+<!--int insertUser(User user);-->
+<insert id="insertUser">
+	insert into t_user values(null,#{username},#{password},#{age},#{sex},#{email})
+</insert>
+```
+
+```java
+@Test
+public void insertUser() {
+	SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+	ParameterMapper mapper = sqlSession.getMapper(ParameterMapper.class);
+	User user = new User(null,"Tom","123456",12,"男","123@321.com");
+	mapper.insertUser(user);
+}
+```
+
+###### 5、使用@Param标识参数
+
+- 可以通过@Param注解标识mapper接口中的方法参数，此时，会将这些参数放在map集合中
+    - 以@Param注解的value属性值为键，以参数为值
+    - 以param1,param2…为键，以参数为值
+- 只需要通过${}和#{}访问map集合的键就可以获取相对应的值
+- ${}需要手动加单引号
+
+```xml
+<!--User CheckLoginByParam(@Param("username") String username, @Param("password") String password);-->
+<select id="CheckLoginByParam" resultType="User">
+    select * from t_user where username = #{username} and password = #{password}
+</select>
+```
+
+```java
+User checkLoginByParam(@Param("username") String username, @Param("password") String password);
+```
+
+```java
+@Test
+public void testCheckLoginByParam(){
+    SqlSession sqlSession = sqlSessionUtils.getSqlSession();
+    ParameterMapper mapper = sqlSession.getMapper(ParameterMapper.class);
+    mapper.checkLoginByParam("admin", "123456");
+}
+```
+
+###### 6、总结
+
+- 分成两种情况进行处理
+    - 实体类类型的参数
+    - 使用@Param标识参数
+
+
+
+##### 四、Mybatis的各种查询功能（各种返回值怎么处理）
+
+- 如果查询出的数据只有一条，可以通过
+    - 实体类对象接收
+    - List集合接收
+    - Map集合接收，结果{password=123456, sex=男, id=1, age=23, username=admin}
+- 如果查询出的数据有多条，一定不能用实体类对象接收，会抛异常TooManyResultsException，可以通过
+    - 实体类类型的LIst集合接收
+    - Map类型的LIst集合接收
+    - 在mapper接口的方法上添加@MapKey注解
+
+###### 1、查询一个实体类对象
+
+```java
+/**
+ * 根据用户id查询用户信息
+ * @param id
+ * @return
+ */
+User getUserById(@Param("id") int id);
+```
+
+```xml
+<!--User getUserById(@Param("id") int id);-->
+<select id="getUserById" resultType="User">
+	select * from t_user where id = #{id}
+</select>
+```
+
+###### 2、查询一个List集合
+
+```java
+/**
+ * 查询所有用户信息
+ * @return
+ */
+List<User> getUserList();
+```
+
+```xml
+<!--List<User> getUserList();-->
+<select id="getUserList" resultType="User">
+	select * from t_user
+</select>
+
+```
+
+###### 3、查询单个数据
+
+```java
+/**  
+ * 查询用户的总记录数  
+ * @return  
+ * 在MyBatis中，对于Java中常用的类型都设置了类型别名  
+ * 例如：java.lang.Integer-->int|integer  
+ * 例如：int-->_int|_integer  
+ * 例如：Map-->map,List-->list  
+ */  
+int getCount();
+```
+
+```xml
+<!--int getCount();-->
+<select id="getCount" resultType="_integer">
+	select count(id) from t_user
+</select>
+```
+
+###### 4、查询一条数据为map集合
+
+```java
+/**  
+ * 根据用户id查询用户信息为map集合  
+ * @param id  
+ * @return  
+ */  
+Map<String, Object> getUserToMap(@Param("id") int id);
+```
+
+```xml
+<!--Map<String, Object> getUserToMap(@Param("id") int id);-->
+<select id="getUserToMap" resultType="map">
+	select * from t_user where id = #{id}
+</select>
+<!--结果：{password=123456, sex=男, id=1, age=23, username=admin}-->
+```
+
+###### 5、查询多条数据为map集合
+
+- 法一：
+
+    ```java
+    /**  
+     * 查询所有用户信息为map集合  
+     * @return  
+     * 将表中的数据以map集合的方式查询，一条数据对应一个map；若有多条数据，就会产生多个map集合，此时可以将这些map放在一个list集合中获取  
+     */  
+    List<Map<String, Object>> getAllUserToMap();
+    ```
+
+    ```xml
+    <!--Map<String, Object> getAllUserToMap();-->  
+    <select id="getAllUserToMap" resultType="map">  
+    	select * from t_user  
+    </select>
+    <!--
+    	结果：
+    	[{password=123456, sex=男, id=1, age=23, username=admin},
+    	{password=123456, sex=男, id=2, age=23, username=张三},
+    	{password=123456, sex=男, id=3, age=23, username=张三}]
+    -->
+    
+    ```
+
+- 法二：
+
+    ```java
+    /**
+     * 查询所有用户信息为map集合
+     * @return
+     * 将表中的数据以map集合的方式查询，一条数据对应一个map；若有多条数据，就会产生多个map集合，并且最终要以一个map的方式返回数据，此时需要通过@MapKey注解设置map集合的键，值是每条数据所对应的map集合
+     */
+    //该注解的值为id，表明以id为唯一值，当做该Map的键
+    @MapKey("id")
+    Map<String, Object> getAllUserToMap();
+    ```
+
+    ```xml
+    <!--Map<String, Object> getAllUserToMap();-->
+    <select id="getAllUserToMap" resultType="map">
+    	select * from t_user
+    </select>
+    <!--
+    	结果：
+    	{
+    	1={password=123456, sex=男, id=1, age=23, username=admin},
+    	2={password=123456, sex=男, id=2, age=23, username=张三},
+    	3={password=123456, sex=男, id=3, age=23, username=张三}
+    	}
+    -->
+    ```
+
+
+
+##### 五、特殊SQL的执行
+
+###### 1、模糊查询（like语句中的%拼接问题）
+
+```java
+/**
+ * 根据用户名进行模糊查询
+ * @param username 
+ */
+List<User> getUserByLike(@Param("username") String username);
+```
+
+```xml
+<!--List<User> getUserByLike(@Param("username") String username);-->
+<select id="getUserByLike" resultType="User">
+	<!--select * from t_user where username like '%${mohu}%'-->  
+	<!--select * from t_user where username like concat('%',#{mohu},'%')-->  
+	select * from t_user where username like "%"#{mohu}"%"
+</select>
+```
+
+###### 2、批量删除
+
+- 只能使用${}，如果使用#{}，则解析后的sql语句为delete from t_user where id in ('1,2,3')，这样是将1,2,3看做是一个整体，只有id为1,2,3的数据会被删除。
+- 正确的语句应该是delete from t_user where id in (1,2,3)，或者delete from t_user where id in ('1','2','3')
+
+```java
+/**
+ * 根据id批量删除
+ * @param ids 
+ * @return int
+ * @date 2022/2/26 22:06
+ */
+int deleteMore(@Param("ids") String ids);
+```
+
+```xml
+<delete id="deleteMore">
+	delete from t_user where id in (${ids})
+</delete>
+```
+
+```java
+//测试类
+@Test
+public void deleteMore() {
+	SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+	SQLMapper mapper = sqlSession.getMapper(SQLMapper.class);
+	int result = mapper.deleteMore("1,2,3,8");
+	System.out.println(result);
+}
+```
+
+
 
