@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.mybatis.mapper.DeptMapper">
+
+<resultMap id="deptAndEmpResultMap" type="dept">
+    <id property="did" column="did"></id>
+    <result property="deptName" column="dept_name"></result>
+    <collection property="emps" ofType="emp">
+        <id property="eid" column="eid"></id>
+        <id property="empName" column="emp_name"></id>
+        <id property="age" column="age"></id>
+        <id property="sex" column="sex"></id>
+        <id property="email" column="email"></id>
+    </collection>
+</resultMap>
+
+<select id="getDeptAndEmp" resultMap="deptAndEmpResultMap">
+    select * from t_dept left join t_emp on t_dept.did = t_emp.did where t_dept.did = #{did}
+</select>
+
+</mapper>

@@ -587,5 +587,509 @@ public void deleteMore() {
 }
 ```
 
+###### 3、动态设置表名
+
+```java
+/**
+ * 查询指定表中的数据
+ * @param tableName 
+ * @return java.util.List<com.atguigu.mybatis.pojo.User>
+ * @date 2022/2/27 14:41
+ */
+List<User> getUserByTable(@Param("tableName") String tableName);
+```
+
+```xml
+<!--List<User> getUserByTable(@Param("tableName") String tableName);-->
+<select id="getUserByTable" resultType="User">
+	select * from ${tableName}
+</select>
+```
+
+###### 4、添加功能获取自增的主键
+
+- 在mapper.xml中设置两个属性
+
+    - useGeneratedKeys：设置使用自增的主键
+
+    - keyProperty：因为增删改有统一的返回值是受影响的行数，因此只能将获取的自增的主键放在传输的参数user对象的某个属性中
+
+```java
+/**
+ * 添加用户信息
+ * @param user 
+ * @date 2022/2/27 15:04
+ */
+void insertUser(User user);
+```
+
+```xml
+<!--void insertUser(User user);-->
+<insert id="insertUser" useGeneratedKeys="true" keyProperty="id">
+	insert into t_user values (null,#{username},#{password},#{age},#{sex},#{email})
+</insert>
+```
+
+```java
+//测试类
+@Test
+public void insertUser() {
+	SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+	SQLMapper mapper = sqlSession.getMapper(SQLMapper.class);
+	User user = new User(null, "ton", "123", 23, "男", "123@321.com");
+	mapper.insertUser(user);
+	System.out.println(user);
+	//输出：user{id=10, username='ton', password='123', age=23, sex='男', email='123@321.com'}，自增主键存放到了user的id属性中
+}
+```
+
+##### 六、自定义映射resultMap
+
+###### 1、resultMap处理字段和属性的映射关系
+
+- resultMap：设置自定义映射
+    - 属性：
+        - id：表示自定义映射的唯一标识，不能重复
+        - type：查询的数据要映射的实体类的类型
+    - 子标签：
+        - id：设置主键的映射关系
+        - result：设置普通字段的映射关系
+        - 子标签属性：
+            - property：设置映射关系中实体类中的属性名
+            - column：设置映射关系中表中的字段名
+
+- 若字段名和实体类中的属性名不一致，则可以通过resultMap设置自定义映射，即使字段名和属性名一致的属性也要映射，也就是全部属性都要列出来
+
+```xml
+<resultMap id="empResultMap" type="Emp">
+	<id property="eid" column="eid"></id>
+	<result property="empName" column="emp_name"></result>
+	<result property="age" column="age"></result>
+	<result property="sex" column="sex"></result>
+	<result property="email" column="email"></result>
+</resultMap>
+<!--List<Emp> getAllEmp();-->
+<select id="getAllEmp" resultMap="empResultMap">
+	select * from t_emp
+</select>
+```
+
+- 若字段名和实体类中的属性名不一致，但是字段名符合数据库的规则（使用_），实体类中的属性名符合Java的规则（使用驼峰）。此时也可通过以下两种方式处理字段名和实体类中的属性的映射关系
+
+    - 1、可以通过为字段起别名的方式，保证和实体类中的属性名保持一致
+
+        ```xml
+        <!--List<Emp> getAllEmp();-->
+        <select id="getAllEmp" resultType="Emp">
+        	select eid,emp_name empName,age,sex,email from t_emp
+        </select>
+        ```
+
+    - 2、可以在MyBatis的核心配置文件中的`setting`标签中，设置一个全局配置信息mapUnderscoreToCamelCase
+
+        ```xml
+        <!--设置Mybatis的全局配置-->
+        <settings>
+            <!--将下划线自动映射为驼峰，如：emp_name -> empName-->
+            <setting name="mapUnderscoreToCamelCase" value="true"/>
+        </settings>
+        ```
+
+###### 2、多对一映射处理
+
+- 实体类
+
+    ```java
+    public class Emp {  
+    	private Integer eid;  
+    	private String empName;  
+    	private Integer age;  
+    	private String sex;  
+    	private String email;  
+    	private Dept dept;
+    	//...构造器、get、set方法等
+    }
+    ```
+
+- 级联方式处理映射关系
+
+    ```xml
+    <resultMap id="empAndDeptResultMapOne" type="Emp">
+    	<id property="eid" column="eid"></id>
+    	<result property="empName" column="emp_name"></result>
+    	<result property="age" column="age"></result>
+    	<result property="sex" column="sex"></result>
+    	<result property="email" column="email"></result>
+    	<result property="dept.did" column="did"></result>
+    	<result property="dept.deptName" column="dept_name"></result>
+    </resultMap>
+    <!--Emp getEmpAndDept(@Param("eid")Integer eid);-->
+    <select id="getEmpAndDept" resultMap="empAndDeptResultMapOne">
+    	select * from t_emp left join t_dept on t_emp.did = t_dept.did where t_emp.eid = #{eid}
+    </select>
+    ```
+
+- 使用association处理映射关系
+
+    - association：处理多对一的映射关系
+    - property：需要处理多对一的映射关系的属性名
+    - javaType：该属性的类型
+
+    ```xml
+    <resultMap id="empAndDeptResultMapTwo" type="Emp">
+    	<id property="eid" column="eid"></id>
+    	<result property="empName" column="emp_name"></result>
+    	<result property="age" column="age"></result>
+    	<result property="sex" column="sex"></result>
+    	<result property="email" column="email"></result>
+    	<association property="dept" javaType="Dept">
+    		<id property="did" column="did"></id>
+    		<result property="deptName" column="dept_name"></result>
+    	</association>
+    </resultMap>
+    <!--Emp getEmpAndDept(@Param("eid")Integer eid);-->
+    <select id="getEmpAndDept" resultMap="empAndDeptResultMapTwo">
+    	select * from t_emp left join t_dept on t_emp.did = t_dept.did where t_emp.eid = #{eid}
+    </select>
+    ```
+
+- 分步查询
+
+    - select：设置分布查询的sql的唯一标识（namespace.SQLId或mapper接口的全类名.方法名）
+
+    - column：设置分布查询的条件
+
+        ```java
+        //EmpMapper里的方法
+        /**
+         * 通过分步查询，员工及所对应的部门信息
+         * 分步查询第一步：查询员工信息
+         * @param  
+         * @return com.atguigu.mybatis.pojo.Emp
+         * @date 2022/2/27 20:17
+         */
+        Emp getEmpAndDeptByStepOne(@Param("eid") Integer eid);
+        ```
+
+        ```xml
+        <resultMap id="empAndDeptByStepResultMap" type="Emp">
+        	<id property="eid" column="eid"></id>
+        	<result property="empName" column="emp_name"></result>
+        	<result property="age" column="age"></result>
+        	<result property="sex" column="sex"></result>
+        	<result property="email" column="email"></result>
+        	<association property="dept"
+        				 select="com.atguigu.mybatis.mapper.DeptMapper.getEmpAndDeptByStepTwo"
+        				 column="did"></association>
+        </resultMap>
+        <!--Emp getEmpAndDeptByStepOne(@Param("eid") Integer eid);-->
+        <select id="getEmpAndDeptByStepOne" resultMap="empAndDeptByStepResultMap">
+        	select * from t_emp where eid = #{eid}
+        </select>
+        ```
+
+        ```java
+        //DeptMapper里的方法
+        /**
+         * 通过分步查询，员工及所对应的部门信息
+         * 分步查询第二步：通过did查询员工对应的部门信息
+         * @param
+         * @return com.atguigu.mybatis.pojo.Emp
+         * @date 2022/2/27 20:23
+         */
+        Dept getEmpAndDeptByStepTwo(@Param("did") Integer did);
+        ```
+
+        ```xml
+        <!--此处的resultMap仅是处理字段和属性的映射关系-->
+        <resultMap id="EmpAndDeptByStepTwoResultMap" type="Dept">
+        	<id property="did" column="did"></id>
+        	<result property="deptName" column="dept_name"></result>
+        </resultMap>
+        <!--Dept getEmpAndDeptByStepTwo(@Param("did") Integer did);-->
+        <select id="getEmpAndDeptByStepTwo" resultMap="EmpAndDeptByStepTwoResultMap">
+        	select * from t_dept where did = #{did}
+        </select>
+        ```
+
+- 延迟加载
+
+    - 分布查询的优点：可以实现延迟加载，但是必须在核心配置文件中设置全局配置信息：
+        - lazyLoadingEnabled：延迟加载的全局开关，当开启时，所有关联对象都会延迟加载
+        - aggressiveLazyLoading：当开启时，任何方法的调用都会加载该对象的所有属性，否则，每个属性会按需加载
+    - 获取的数据是什么，就只会执行相应的SQL，就是按需加载，此时可用通过association和collection中的fetchType属性设置当前的分布查询是否使用延迟加载：fetchType=“lazy(延迟加载)|eager(立即加载)”
+
+    ```xml
+    <settings>
+    	<!--开启延迟加载-->
+    	<setting name="lazyLoadingEnabled" value="true"/>
+    </settings>
+    ```
+
+    ```java
+    <resultMap id="empAndDeptByStepResultMap" type="Emp">
+    	<id property="eid" column="eid"></id>
+    	<result property="empName" column="emp_name"></result>
+    	<result property="age" column="age"></result>
+    	<result property="sex" column="sex"></result>
+    	<result property="email" column="email"></result>
+    	<association property="dept"
+    				 select="com.atguigu.mybatis.mapper.DeptMapper.getEmpAndDeptByStepTwo"
+    				 column="did"
+    				 fetchType="lazy"></association>
+    </resultMap>
+    ```
+
+###### 3、一对多映射处理
+
+- 实体类
+
+    ```java
+    public class Dept {
+        private Integer did;
+        private String deptName;
+        private List<Emp> emps;
+    	//...构造器、get、set方法等
+    }
+    ```
+
+- 使用collection处理一对多的映射关系
+
+    - collection：用来处理一对多的映射关系
+    - ofType：表示该属性对饮的集合中存储的数据的类型
+
+    ```xml
+    <resultMap id="DeptAndEmpResultMap" type="Dept">
+    	<id property="did" column="did"></id>
+    	<result property="deptName" column="dept_name"></result>
+    	<collection property="emps" ofType="Emp">
+    		<id property="eid" column="eid"></id>
+    		<result property="empName" column="emp_name"></result>
+    		<result property="age" column="age"></result>
+    		<result property="sex" column="sex"></result>
+    		<result property="email" column="email"></result>
+    	</collection>
+    </resultMap>
+    <!--Dept getDeptAndEmp(@Param("did") Integer did);-->
+    <select id="getDeptAndEmp" resultMap="DeptAndEmpResultMap">
+    	select * from t_dept left join t_emp on t_dept.did = t_emp.did where t_dept.did = #{did}
+    </select>
+    ```
+
+- 分步查询
+
+    - select：设置分布查询的sql的唯一标识（namespace.SQLId或mapper接口的全类名.方法名）
+    - column：设置分步查询的条件
 
 
+
+##### 七、动态SQL
+
+###### 1、if
+
+- if标签可通过test属性（即传递过来的数据）的表达式进行判断，若表达式的结果为true，则标签中的内容会执行；反之标签中的内容不会执行
+
+    ```xml
+    <!--List<Emp> getEmpByCondition(Emp emp);-->
+    <select id="getEmpByCondition" resultType="Emp">
+    	select * from t_emp where 1=1
+    	<if test="empName != null and empName !=''">
+    		and emp_name = #{empName}
+    	</if>
+    	<if test="age != null and age !=''">
+    		and age = #{age}
+    	</if>
+    	<if test="sex != null and sex !=''">
+    		and sex = #{sex}
+    	</if>
+    	<if test="email != null and email !=''">
+    		and email = #{email}
+    	</if>
+    </select>
+    ```
+
+###### 2、where
+
+- where和if一般结合使用：
+
+    - 若where标签中的if条件都不满足，则where标签没有任何功能，即不会添加where关键字
+    - 若where标签中的if条件满足，则where标签会自动添加where关键字，并将条件最前方多余的and/or去掉
+
+    ```xml
+    <!--List<Emp> getEmpByCondition(Emp emp);-->
+    <select id="getEmpByCondition" resultType="Emp">
+    	select * from t_emp
+    	<where>
+    		<if test="empName != null and empName !=''">
+    			emp_name = #{empName}
+    		</if>
+    		<if test="age != null and age !=''">
+    			and age = #{age}
+    		</if>
+    		<if test="sex != null and sex !=''">
+    			and sex = #{sex}
+    		</if>
+    		<if test="email != null and email !=''">
+    			and email = #{email}
+    		</if>
+    	</where>
+    </select>
+    ```
+
+- 注意：where标签不能去掉条件后多余的and/or
+
+    ```xml
+    <!--这种用法是错误的，只能去掉条件前面的and/or，条件后面的不行-->
+    <if test="empName != null and empName !=''">
+    emp_name = #{empName} and
+    </if>
+    <if test="age != null and age !=''">
+    	age = #{age}
+    </if>
+    ```
+
+###### 3、trim
+
+- trim用于去掉或添加标签中的内容
+
+    - prefix：在trim标签中的内容的前面添加某些内容
+    - suffix：在trim标签中的内容的后面添加某些内容
+    - prefixOverrides：在trim标签中的内容的前面去掉某些内容
+    - suffixOverrides：在trim标签中的内容的后面去掉某些内容
+
+- 若trim中的标签都不满足条件，则trim标签没有任何效果
+
+    ```xml
+    <!--List<Emp> getEmpByCondition(Emp emp);-->
+    <select id="getEmpByCondition" resultType="Emp">
+    	select * from t_emp
+    	<trim prefix="where" suffixOverrides="and|or">
+    		<if test="empName != null and empName !=''">
+    			emp_name = #{empName} and
+    		</if>
+    		<if test="age != null and age !=''">
+    			age = #{age} and
+    		</if>
+    		<if test="sex != null and sex !=''">
+    			sex = #{sex} or
+    		</if>
+    		<if test="email != null and email !=''">
+    			email = #{email}
+    		</if>
+    	</trim>
+    </select>
+    ```
+
+###### 4、choose、when、otherwise
+
+- `choose、when、otherwise`相当于`if...else if..else`
+
+- 当一个when成立时，下面的when将不会执行，当所有的when都不成立时，则执行otherwise（相当于最后的else）
+
+- when至少要有一个，otherwise至多只有一个
+
+    ```xml
+    <select id="getEmpByChoose" resultType="Emp">
+    	select * from t_emp
+    	<where>
+    		<choose>
+    			<when test="empName != null and empName != ''">
+    				emp_name = #{empName}
+    			</when>
+    			<when test="age != null and age != ''">
+    				age = #{age}
+    			</when>
+    			<when test="sex != null and sex != ''">
+    				sex = #{sex}
+    			</when>
+    			<when test="email != null and email != ''">
+    				email = #{email}
+    			</when>
+    			<otherwise>
+    				did = 1
+    			</otherwise>
+    		</choose>
+    	</where>
+    </select>
+    ```
+
+###### 5、foreach
+
+- 属性：
+
+    - collection：设置要循环的数组或集合
+    - item：表示集合或数组中的每一个数据
+    - separator：设置循环体之间的分隔符，分隔符前后默认有一个空格，如`,`
+    - open：设置foreach标签中的内容的开始符
+    - close：设置foreach标签中的内容的结束符
+
+- 批量删除
+
+    ```xml
+    <!--int deleteMoreByArray(Integer[] eids);-->
+    <delete id="deleteMoreByArray">
+    	delete from t_emp where eid in
+    	<foreach collection="eids" item="eid" separator="," open="(" close=")">
+    		#{eid}
+    	</foreach>
+    </delete>
+    ```
+
+- 批量添加
+
+    ```xml
+    <!--int insertMoreByList(@Param("emps") List<Emp> emps);-->
+    <insert id="insertMoreByList">
+    	insert into t_emp values
+    	<foreach collection="emps" item="emp" separator=",">
+    		(null,#{emp.empName},#{emp.age},#{emp.sex},#{emp.email},null)
+    	</foreach>
+    </insert>
+    ```
+
+###### 6、SQL片段
+
+- sql片段，可以记录一段公共sql片段，在使用的地方通过include标签进行引入
+
+- 声明sql片段：`<sql>`标签
+
+    ```xml
+    <sql id="empColumns">eid,emp_name,age,sex,email</sql>
+    ```
+
+- 引用sql片段：`<include>`标签
+
+    ```xml
+    <!--List<Emp> getEmpByCondition(Emp emp);-->
+    <select id="getEmpByCondition" resultType="Emp">
+    	select <include refid="empColumns"></include> from t_emp
+    </select>
+    ```
+
+
+
+
+
+##### 八、MyBatis的缓存
+
+###### 1、MyBatis的一级缓存
+
+- 一级缓存是SqlSession级别的，通过同一个SqlSession查询的数据会被缓存，下次查询相同的数据，就会从缓存中直接获取，不会从数据库重新访问
+- 使一级缓存失效的四种情况：
+    - 不同的SqlSession对应不同的一级缓存
+    - 同一个SqlSession但是查询条件不同
+    - 同一个SqlSession两次查询期间执行了任何一次增删改操作
+    - 同一个SqlSession两次查询期间手动清空了缓存
+
+###### 2、MyBatis的二级缓存
+
+- 二级缓存是SqlSessionFactory级别，通过同一个SqlSessionFactory创建的SqlSession查询的结果会被缓存；此后若再次执行相同的查询语句，结果就会从缓存中获取
+- 二级缓存开启的条件
+    - 在核心配置文件中，设置全局配置属性cacheEnabled=“true”，默认为true，不需要设置
+    - 在映射文件中设置标签（只需一个`<cache />`即可）
+    - 二级缓存必须在SqlSession关闭或提交之后有效
+    - 查询的数据所转换的实体类类型必须实现序列化的接口
+
+- 使二级缓存失效的情况：两次查询之间执行了任意的增删改，会使一级和二级缓存同时失效
+
+###### 3、二级缓存的相关配置
