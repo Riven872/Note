@@ -288,6 +288,16 @@ LinkedHashSet按添加顺序排序，元素的顺序为添加的顺序
 - HttpServletResponse完成：设置http头标，设置cookie，设置返回数据类型，输出返回数据
 - 读取路径信息是HttpServletRequest做的
 
+3、在Web应用程序中，(  )负责将HTTP请求转换为HttpServletRequest对象
+
+答案：Web容器
+
+解析：
+
+- web容器是一种服务程序，在服务器一个端口就有一个提供相应服务的程序
+- 这个程序就是处理从客户端发出的请求，如Java的Tomcat，ASP的IIS或PWS都是这样的容器
+- 一个服务器可以有多个容器
+
 
 
 ###### 语句格式
