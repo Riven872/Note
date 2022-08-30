@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/MyBatis.iml" filepath="$PROJECT_DIR$/.idea/MyBatis.iml" />
       <module fileurl="file://$PROJECT_DIR$/MyBatis_demo1/MyBatis_demo1.iml" filepath="$PROJECT_DIR$/MyBatis_demo1/MyBatis_demo1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Mybatis_demo2/MyBatis_demo1 (1).iml" filepath="$PROJECT_DIR$/Mybatis_demo2/MyBatis_demo1 (1).iml" />
       <module fileurl="file://$PROJECT_DIR$/Mybatis_MBG/Mybatis_MBG.iml" filepath="$PROJECT_DIR$/Mybatis_MBG/Mybatis_MBG.iml" />
       <module fileurl="file://$PROJECT_DIR$/Mybatis_demo2/Mybatis_demo2.iml" filepath="$PROJECT_DIR$/Mybatis_demo2/Mybatis_demo2.iml" />
       <module fileurl="file://$PROJECT_DIR$/Mybatis_demo3/Mybatis_demo3.iml" filepath="$PROJECT_DIR$/Mybatis_demo3/Mybatis_demo3.iml" />
