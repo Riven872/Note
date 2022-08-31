@@ -169,11 +169,11 @@
         }
         ```
 
-    - 最佳实战
+    - 应用场景
 
-    - 配置 类组件之间无依赖关系用Lite模式加速容器启动过程，减少判断
+        - 配置 类组件之间无依赖关系用Lite模式加速容器启动过程，减少判断
 
-    - 配置 类组件之间有依赖关系，方法会被调用得到之前单实例组件，用Full模式（默认）
+        - 配置 类组件之间有依赖关系，方法会被调用得到之前单实例组件，用Full模式（默认）
 
     - 总结：
 
@@ -285,3 +285,232 @@
 
     - 配置文件同上
 
+
+###### 3、自动配置原理
+
+- 引导加载自动配置类@SpringBootApplication
+
+- @SpringBootApplication是一个合成注解，包括@SpringBootConfiguration、@EnableAutoConfiguration、@ComponentScan
+    - @SpringBootConfiguration：实质还是@Configuration，代表当前是一个配置类
+    - @ComponentScan：指定要扫描哪些包
+    - @EnableAutoConfiguration：是一个合成注解，包括@AutoConfigurationPackage、@Import(AutoConfigurationImportSelector.class)
+        - @AutoConfigurationPackage自动配置包（指定了默认的包规则）：
+            - 本质是@Import(AutoConfigurationPackages.Registrar.class)
+            - 给容器注册了一个AutoConfigurationPackages.Registrar的组件
+            - 利用Registrar给容器中导入一系列组件
+            - 会获取到注解所在的包名，即将指定的一个包下的所有组件导入进来，也因此是MainApplication所在的包下的所有组件注册到容器中（因为将@SpringBootApplication标注在了MainApplication类上）
+        - @Import(AutoConfigurationImportSelector.class)（按需配置）：
+            - 利用`getAutoConfigurationEntry(annotationMetadata);`给容器中批量导入一些组件
+            - 调用`List<String> configurations = getCandidateConfigurations(annotationMetadata, attributes)`获取到所有需要导入到容器中的配置类
+            - 利用工厂加载 `Map<String, List<String>> loadSpringFactories(@Nullable ClassLoader classLoader);`得到所有的组件
+            - 从`META-INF/spring.factories`位置来加载一个文件
+
+- 按需开启自动配置项
+
+    - 虽然各个场景的所有自动配置启动的时候默认全部加载，但是`xxxxAutoConfiguration`按照条件装配规则（`@Conditional`注解），最终会按需配置。
+
+- SpringBoot默认会在底层配好所有的组件，但是如果用户自己配置了，那么以用户的优先，以编码过滤器为例：
+
+    ```java
+    @Bean
+    @ConditionalOnMissingBean //当用户没有注册该组件时，那么执行该方法并注册组件，如果用户已经自己配置，那么将不会再次注册
+    public CharacterEncodingFilter characterEncodingFilter() {
+        //...
+    }
+    
+    //注意：如果我认为默认的编码过滤器不好用，自己进行组件的注册，那么底层因为@ConditionalOnMissingBean注解的存在，则不会再次注册，并以用户注册的组件优先
+    ```
+
+- 总结
+
+    - SpringBoot先加载所有的自动配置类（以AutoConfiguration为后缀）
+    - 每个自动配置类按照条件进行生效（不是全部生效），默认都会绑定配置文件指定的值（以Properties为后缀的类），而Properties类又和配置文件进行了绑定（通过配置绑定的注解），因此方便定制化
+    - 生效的配置类就会给容器中装配很多组件
+    - 只要容器中有这些组件，相当于这些功能就有了
+    - 定制化配置
+        - 用户直接自己@Bean替换底层的组件
+        - 用户去看这个组件是获取的配置文件的什么值就去修改
+
+- 应用场景
+    - 先引入相关的场景依赖（默认的或者是第三方的）
+    - 查看自动配置了哪些（选做）
+        - 自己进入自动配置类中分析，哪些生效了
+        - 配置文件中debug=true开启自动配置报告会打印日志，其中Negative的是不生效的，Positive的是生效的
+    - 是否需要定制化配置
+        - 需要定制化，找到配置类对应的实体类，找到相应的前缀（prefix）和实体类中的属性，在配置文件中修改即可
+        - 可以自定义加入或替换组件，通过@Bean、@Component等
+        - 自定义器（以Customizer为后缀），以后讲
+
+###### 4、开发技巧
+
+- Lombok（简化Java Bean的开发）
+
+    - 需要引入依赖，SpringBoot已经替我们管理了，不用写依赖的版本
+
+    ```java
+    @Data //在编译时，自动生成get、set方法
+    @ToString //自动重写toString()
+    @AllArgsConstructor //编译时自动生成全部参数的构造器
+    @NoArgsConstructor //编译时自动生成无参构造器
+    public class User {
+        private String name;
+    
+        private int age;
+    }
+    ```
+
+    - @Slf4j，可以直接用log.error("")进行日志的打印（或者log.info等等）
+    - @EqualsAndHashCode，重写两个方法
+    - 如果需要部分参数的构造器，需要自己手动去写
+
+- dev-tools
+    - 需要引入对应的依赖
+    - 自动重启项目，不用手动重启，有丶小鸡肋，无所大谓
+
+- Initailizr（项目初始化向导）
+    - 创建SpringBoot工程向导，创建新项目的时候非常方便，会把目录、依赖、场景等等全部自动配置好
+
+##### 四、配置文件
+
+###### 1、Properties
+
+- 语法同以前的Properties
+
+###### 2、YAML
+
+- 标记语言
+
+- 适合用来做以数据为中心的配置文件
+
+- 基本语法：
+
+    - key冒号空格value（key: value）
+    - 大小写敏感
+    - 使用缩进表示层级关系
+    - 缩进不允许使用tab，只允许空格
+    - 缩进的空格数不重要，只要相同层级的元素左对齐即可
+    - '#'表示注释
+    - 字符串内容可以直接写，不需要引号
+    - 双引号内的特殊字符不会转义，单引号内的特殊字符会转义
+
+- 数据类型：
+
+    - 字面量，如：date、boolean、string、number、null
+
+        ```yaml
+        k: v
+        ```
+
+    - 对象：键值对集合，如：map、hash、set、object
+
+        ```yaml
+        #行内写法
+        k: {k1: v1,k2: v2,k3: v3}
+        #或
+        k: 
+          k1: v1
+          k2: v2
+          k3: v3
+        ```
+
+    - 数组，如array、list、queue
+
+        ```yaml
+        #行内写法
+        k: [v1,v2,v3]
+        #或
+        k:
+          - v1
+          - v2
+          - v3
+        ```
+
+- 举个栗子
+
+    ```java
+    @ConfigurationProperties(prefix = "person")
+    @Component
+    @Data
+    public class Person {
+        private String userName;
+        private Boolean boss;
+        private Date birth;
+        private Integer age;
+        private Pet pet;
+        private String[] interests;
+        private List<String> animal;
+        private Map<String, Object> score;
+        private Set<Double> salarys;
+        private Map<String, List<Pet>> allPets;
+    }
+    
+    @Data
+    public class Pet {
+        private String name;
+        private Double weight;
+    }
+    ```
+
+    ```yaml
+    person:
+      userName: zhangsan
+      boss: false
+      birth: 2019/12/12 20:12:33
+      age: 18
+      pet: 
+        name: tomcat
+        weight: 23.4
+      interests: [篮球,游泳]
+      animal: 
+        - jerry
+        - mario
+      score:
+        english: 
+          first: 30
+          second: 40
+          third: 50
+        math: [131,140,148]
+        chinese: {first: 128,second: 136}
+      salarys: [3999,4999.98,5999.99]
+      allPets:
+        sick:
+          - {name: tom}
+          - {name: jerry,weight: 47}
+        health: [{name: mario,weight: 47}]
+    ```
+
+- 自定义类绑定的配置提示
+
+    - 这样在写的时候会有智能提示
+
+    - 需要手动添加依赖
+
+    - 因为该依赖只是在编码时使用，如果打包的话太冗余，可以在pom配置文件中，添加插件，在进行打包时不将配置处理器打包进去
+
+        ```xml
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- 下面插件作用是工程打包时，不将spring-boot-configuration-processor打进包内，让其只在编码的时候有用 -->
+        <build>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <configuration>
+                        <excludes>
+                            <exclude>
+                                <groupId>org.springframework.boot</groupId>
+                                <artifactId>spring-boot-configuration-processor</artifactId>
+                            </exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </build>
+        ```
+
+        
