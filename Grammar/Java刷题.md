@@ -18,6 +18,10 @@
 
 6、在类加载的时候会赋予初值的是类变量（静态变量），而非对象成员（非静态变量）
 
+7、%是取余，余数和被除数符号一致。mod是取模，和除数符号一致
+
+8、整数类型  byte short int long
+
 
 
 ###### String类、包装类、数据类型
@@ -112,6 +116,23 @@ Object o1 = true ? new Integer(1) : new Double(2.0);
 
 - 实质是char类型自动向上转型为int类型
 - 字符'2'对应的ASCII码是整型的50
+
+9、返回结果为
+
+```java
+Integer a = 1;
+Integer b = 1;
+Integer c = 500;
+Integer d = 500;
+System.out.print(a == b);
+System.out.print(c == d);
+```
+
+答案：true、false
+
+解析：
+
+- -128~127存在常量池内,超过就要new新的
 
 
 
