@@ -513,4 +513,43 @@
         </build>
         ```
 
+
+
+
+##### 五、WEB开发
+
+###### 1、SpringMVC自动配置
+
+- 大多数场景不需要自定义配置
+
+###### 2、简单功能分析
+
+- 静态资源访问
+
+    - 放在`resources`目录下，新建`static`或`public`或`resources`或`META-INF/resources`
+
+    - 访问：当前项目根路径/ + 静态资源名，如`localhost:8080/foo.jpg`
+
+    - 原理：静态映射/**，请求进来之后，先去找controller能不能处理该请求映射，不能处理的所有请求又都交给静态资源处理器，静态资源则会去`resources`目录下的静态资源目录去找请求资源，如果资源也没有，则返回404
+
+    - 也可以改变默认的静态资源路径，`/static`，`/public`,`/resources`, `/META-INF/resources`失效，只有将静态资源放到`/foobar`目录下才会访问到
+
+        ```yaml
+        resources:
+          static-locations: [classpath:/foobar/]
+        ```
+
+- 静态资源访问前缀
+
+    - 默认无前缀，直接访问静态资源名即可
+
+    - 当前项目名 + static-path-pattern + 静态资源名 = 静态资源文件夹下找，如`localhost:8080/bar/foo.jpg`
+
+        ```yaml
+        spring:
+          mvc:
+            static-path-pattern: /bar/**
+        ```
+
         
+
