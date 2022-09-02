@@ -22,9 +22,11 @@
 
 8、整数类型  byte short int long
 
+9、线程优先级高只能说明它获得cpu时间片的几率更大，而不是先于优先级低的线程先执行（所以并不会发生抢占的行为）
 
 
-###### String类、包装类、数据类型
+
+###### String类、包装类、数据类型、运算
 
 1、输出的内容为：
 
@@ -134,6 +136,43 @@ System.out.print(c == d);
 
 - -128~127存在常量池内,超过就要new新的
 
+10、下面的程序 编译运行后，在屏幕上显示的结果是
+
+```java
+public class Test {
+
+    public static void main(String args[]) {
+        int x, y;
+        x = 5 >> 2;
+        y = x >>> 2;
+        System.out.println(y);
+    }
+}
+```
+
+答案：0
+
+解析：
+
+- \>>表示带符号右移位运算符，5的二进制表示为：101，5\>>2表示右移两位，即001，即1
+- \>>>表示不带符号右移位运算符，1\>>>2即001右移两位，即000
+
+- <<表示带符号左移位运算符，5的二进制表示为：101，5<<2表示左移两位，10100，即64
+
+11、输出结果为：
+
+```java
+String str = "";
+System.out.print(str.split(",").length);
+```
+
+答案：1
+
+解析：
+
+- 当没有符合条件的字符串切割时，会返回长度为一的数组，且该数组中的元素为""，空串
+- 可以这么理解，ABC去切割，结果没有符合条件的切割，而且split返回值是一个数据，那么这个数组返回长度为一，且数组[0]存放的就是ABC
+
 
 
 ###### 封装、继承、多态
@@ -210,6 +249,30 @@ public class Test {
 
 - 当Java程序执行try块、catch块时遇到了return或throw语句，这两个语句都会导致该方法立即结束，但是系统执行这两个语句并不会结束该方法，而是去寻找该异常处理流程中是否包含finally块，如果没有finally块，程序立即执行return或throw语句，方法终止；如果有finally块，系统立即开始执行finally块。只有当finally块执行完成后，系统才会再次跳回来执行try块、catch块里的return或throw语句；如果finally块里也使用了return或throw等语句，finally块会终止方法，系统将不会跳回去执行try块、catch块里的任何代码
 
+2、AccessViolationException异常触发后，下列程序的输出结果为
+
+```java
+static void Main(string[] args)  
+{  
+    try  
+    {  
+        throw new AccessViolationException();  
+        Console.WriteLine("error1");  
+    }  
+    catch (Exception e)  
+    {  
+        Console.WriteLine("error2");  
+    }  
+    Console.WriteLine("error3");  
+}
+```
+
+答案：error2、error3
+
+解析：
+
+- try..catch，catch捕获到异常，如果没有抛出异常语句(throw)，不影响后续程序
+
 
 
 ###### 多线程
@@ -233,6 +296,24 @@ public class Test {
 - 在Thread类中有一个Map，用于存储每一个线程的变量的副本。
 - 对于多线程资源共享的问题，同步机制采用了“以时间换空间”的方式，而ThreadLocal采用了“以空间换时间”的方式
 - 在Thread中有一个成员变量ThreadLocals，该变量的类型是ThreadLocalMap,也就是一个Map，它的键是threadLocal，值就是变量的副本
+
+3、有关finally语句块正确的是
+
+```
+A.不管catch是否捕获异常，finally语句块都是要被执行的
+B.在try语句块或catch语句块中执行到System.exit(0)直接退出程序
+C.finally块中的return语句会覆盖try块中的return返回
+D.finally 语句块在 catch语句块中的return语句之前执行
+```
+
+答案：ABD
+
+解析：
+
+- 不管有木有出现异常，finally块中代码都会执行；
+- 当try和catch中有return时，finally仍然会执行；
+- finally是在return后面的表达式运算后执行的（此时并没有返回运算后的值，而是先把要返回的值保存起来，管finally中的代码怎么样，返回的值都不会改变，仍然是之前保存的值），所以函数返回值是在finally执行前确定的；
+- finally中最好不要包含return，否则程序会提前退出，返回值不是try或catch中保存的返回值。
 
 
 
