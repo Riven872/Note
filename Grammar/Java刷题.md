@@ -24,6 +24,8 @@
 
 9、线程优先级高只能说明它获得cpu时间片的几率更大，而不是先于优先级低的线程先执行（所以并不会发生抢占的行为）
 
+10、forward属于服务器内部的重定向，redirect输入外部的重定向，浏览器向服务器发送两次请求
+
 
 
 ###### String类、包装类、数据类型、运算
@@ -220,6 +222,40 @@ class EnumOne
 解析：
 
 - 枚举类有三个实例，故调用三次构造方法，打印三次It is a account type
+
+3、下面的代码输出结果是：
+
+```java
+class Animal{
+    public void move(){
+        System.out.println("动物可以移动");
+    }
+}
+class Dog extends Animal{
+    public void move(){
+        System.out.println("狗可以跑和走");
+    }
+    public void bark(){
+        System.out.println("狗可以吠叫");
+    }
+}
+public class TestDog{
+    public static void main(String args[]){
+        Animal a = new Animal();
+        Animal b = new Dog(); 
+        a.move();
+        b.move();
+        b.bark();
+    }
+}
+```
+
+答案：编译错误
+
+解析：
+
+- 第20行编译出错，因为父类中没有bark方法，多态只能调用子类重写父类的方法
+- 可以使用向下转型((Dog)b).bark()使用该方法
 
 
 
