@@ -26,6 +26,10 @@
 
 10、forward属于服务器内部的重定向，redirect输入外部的重定向，浏览器向服务器发送两次请求
 
+11、static不能用来修饰类，除非类是内部类，此时该类作为外部类的成员变量，可以用static来修饰
+
+12、Java语言中，中文字符所占的字节数取决于字符的编码方式
+
 
 
 ###### String类、包装类、数据类型、运算
@@ -174,6 +178,34 @@ System.out.print(str.split(",").length);
 
 - 当没有符合条件的字符串切割时，会返回长度为一的数组，且该数组中的元素为""，空串
 - 可以这么理解，ABC去切割，结果没有符合条件的切割，而且split返回值是一个数据，那么这个数组返回长度为一，且数组[0]存放的就是ABC
+
+12、以下代码执行后输出结果为（ ）
+
+```java
+public class ClassTest{
+     String str = new String("hello");
+     char[] ch = {'a','b','c'};
+     public void fun(String str, char ch[]){
+     str="world";
+     ch[0]='d';
+ }
+ public static void main(String[] args) {
+     ClassTest test1 = new ClassTest();
+     test1.fun(test1.str,test1.ch);
+     System.out.print(test1.str + " and ");
+     System.out.print(test1.ch);
+     }
+ }
+```
+
+答案：hello and dbc
+
+解析：
+
+- 在函数调用中，char和String都是传递地址，而非传递值
+- str="world"相当于 str = new String("world"); 即str从新指向了一个新开辟的堆空间，而放弃了原先形参的地址，因此不会影响到实参
+- 而ch[0] = 'd'相当于操控原先的地址找到对象并修改，因此会影响到实参
+- 总结：形参有没有影响实参首先看传递的是值还是地址，其次看形参在此期间有没有指向新的地址，如果有则不会影响实参，反之则影响实参
 
 
 
@@ -469,7 +501,7 @@ D:编译错误
 
 
 
-###### JVM、内存
+###### JVM、内存、GC
 
 1、针对jdk1.7,以下哪个不属于JVM堆内存中的区域
 
@@ -479,3 +511,35 @@ D:编译错误
 
 - jvm堆分为：新生代（一般是一个Eden区，两个Survivor区），老年代（old区）
 - 常量池属于 PermGen（方法区）
+
+2、下面关于JAVA的垃圾回收机制，正确的是
+
+```
+A.当调用“System.gc()”来强制回收时，系统会立即回收垃圾
+B.垃圾回收不能确定具体的回收时间
+C.程序可明确地标识某个局部变量的引用不再被使用
+D.程序可以显式地立即释放对象占有的内存
+```
+
+答案：B
+
+解析：
+
+- java的垃圾回收由垃圾回收器控制，显式调用回收方法（System.gc()）只是提醒GC可能需要执行一次垃圾回收，GC并不一定会立即执行垃圾回收
+- 垃圾回收时间不是固定的，GC会定期监测满足回收条件才会回收
+
+3、java程序内存泄露的最直接表现是
+
+```
+A.频繁FullGc
+B.jvm崩溃
+C.程序抛内存溢出的Exception
+D.java进程异常消失
+```
+
+答案：C
+
+解析：
+
+- java是自动管理内存的，通常情况下程序运行到稳定状态，内存大小也达到一个 基本稳定的值
+- 但是内存泄露导致Gc不能回收泄露的垃圾，内存不断变大，最终超出内存界限，抛出OutOfMemoryExpection
