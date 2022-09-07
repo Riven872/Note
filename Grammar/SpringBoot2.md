@@ -1,6 +1,6 @@
-##### 一、SpringBoot2
+#### 一、SpringBoot2
 
-###### 1、优点
+##### 1、优点
 
 - 创建独立Spring应用
 - 内嵌web服务器
@@ -11,9 +11,9 @@
 - SpringBoot是整合Spring技术栈的一站式框架
 - SpringBoot是简化Spring技术栈的快速开发脚手架
 
-##### 二、SpringBoot特点
+#### 二、SpringBoot特点
 
-###### 1、父项目做依赖管理
+##### 1、父项目做依赖管理
 
 ```xml
 依赖管理
@@ -66,7 +66,7 @@
         </properties>
         ```
 
-###### 2、自动配置
+##### 2、自动配置
 
 - 自动配好Tomcat
 
@@ -125,9 +125,9 @@
     - 引入了哪些场景这个场景的自动配置才会开启
     - SpringBoot所有的自动配置功能都在 spring-boot-autoconfigure 包里面
 
-##### 三、容器功能
+#### 三、容器功能
 
-###### 1、组件添加
+##### 1、组件添加
 
 - @Bean、@Component、@Controller、@Service、@Repository，它们是Spring的基本标签，在Spring Boot中并未改变它们原来的功能
 
@@ -217,7 +217,7 @@
         }
         ```
 
-###### 2、原生配置文件引入
+##### 2、原生配置文件引入
 
 - @ImportResource注解——导入Spring配置文件
 
@@ -231,7 +231,7 @@
     }
     ```
 
-###### 3、配置绑定
+##### 3、配置绑定
 
 - 传统方法读取properties文件中的内容，并且把它封装到JavaBean中，以供随时使用非常繁琐
 
@@ -286,7 +286,7 @@
     - 配置文件同上
 
 
-###### 3、自动配置原理
+##### 4、自动配置原理
 
 - 引导加载自动配置类@SpringBootApplication
 
@@ -341,7 +341,7 @@
         - 可以自定义加入或替换组件，通过@Bean、@Component等
         - 自定义器（以Customizer为后缀），以后讲
 
-###### 4、开发技巧
+##### 5、开发技巧
 
 - Lombok（简化Java Bean的开发）
 
@@ -370,13 +370,13 @@
 - Initailizr（项目初始化向导）
     - 创建SpringBoot工程向导，创建新项目的时候非常方便，会把目录、依赖、场景等等全部自动配置好
 
-##### 四、配置文件
+#### 四、配置文件
 
-###### 1、Properties
+##### 1、Properties
 
 - 语法同以前的Properties
 
-###### 2、YAML
+##### 2、YAML
 
 - 标记语言
 
@@ -516,28 +516,28 @@
 
 
 
-##### 五、WEB开发
+#### 五、WEB开发
 
-###### 1、SpringMVC自动配置
+##### 1、SpringMVC自动配置
 
 - 大多数场景不需要自定义配置
 
-###### 2、简单功能分析
+##### 2、简单功能分析
 
-- 静态资源访问
+###### 2.1静态资源访问
 
-    - 放在`resources`目录下，新建`static`或`public`或`resources`或`META-INF/resources`
+- 放在`resources`目录下，新建`static`或`public`或`resources`或`META-INF/resources`
 
-    - 访问：当前项目根路径/ + 静态资源名，如`localhost:8080/foo.jpg`
+- 访问：当前项目根路径/ + 静态资源名，如`localhost:8080/foo.jpg`
 
-    - 原理：静态映射/**，请求进来之后，先去找controller能不能处理该请求映射，不能处理的所有请求又都交给静态资源处理器，静态资源则会去`resources`目录下的静态资源目录去找请求资源，如果资源也没有，则返回404
+- 原理：静态映射/**，请求进来之后，先去找controller能不能处理该请求映射，不能处理的所有请求又都交给静态资源处理器，静态资源则会去`resources`目录下的静态资源目录去找请求资源，如果资源也没有，则返回404
 
-    - 也可以改变默认的静态资源路径，`/static`，`/public`,`/resources`, `/META-INF/resources`失效，只有将静态资源放到`/foobar`目录下才会访问到
+- 也可以改变默认的静态资源路径，`/static`，`/public`,`/resources`, `/META-INF/resources`失效，只有将静态资源放到`/foobar`目录下才会访问到
 
-        ```yaml
-        resources:
-          static-locations: [classpath:/foobar/]
-        ```
+    ```yaml
+    resources:
+      static-locations: [classpath:/foobar/]
+    ```
 
 - 静态资源访问前缀
 
@@ -551,100 +551,125 @@
             static-path-pattern: /bar/**
         ```
 
-- 静态资源配置原理
+###### 2.2静态资源配置原理
 
-    - SpringBoot启动默认加载xxxAutoConfiguration类（自动配置类）
+- SpringBoot启动默认加载xxxAutoConfiguration类（自动配置类）
 
-    - SpringMVC功能的自动配置类是WebMVCAutoConfiguration，根据条件装配注解查看是否生效
+- SpringMVC功能的自动配置类是WebMVCAutoConfiguration，根据条件装配注解查看是否生效
+
+    ```java
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnWebApplication(type = Type.SERVLET)
+    @ConditionalOnClass({ Servlet.class, DispatcherServlet.class, WebMvcConfigurer.class })
+    @ConditionalOnMissingBean(WebMvcConfigurationSupport.class)
+    @AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE + 10)
+    @AutoConfigureAfter({ DispatcherServletAutoConfiguration.class, TaskExecutionAutoConfiguration.class,
+    		ValidationAutoConfiguration.class })
+    public class WebMvcAutoConfiguration {
+        ...
+    }
+    ```
+
+- 给容器中配了什么
+
+    ```java
+    @Configuration(proxyBeanMethods = false)
+    @Import(EnableWebMvcConfiguration.class)
+    @EnableConfigurationProperties({ WebMvcProperties.class, ResourceProperties.class })
+    @Order(0)
+    public static class WebMvcAutoConfigurationAdapter implements WebMvcConfigurer {
+        ...
+    }
+    ```
+
+- 配置文件的相关属性的绑定：WebMvcProperties==spring.mvc实体类、ResourceProperties==spring.resources实体类
+
+- 配置类中只有一个有参构造器时，有参构造的参数值都会从容器中确定
+
+##### 3、请求参数处理
+
+###### 3.1请求映射
+
+- 即使用@xxxMapping注解
+
+- RESTful风格的请求方式需要在SpringBoot中手动开启
+
+    ```java
+    @Bean
+    @ConditionalOnMissingBean(HiddenHttpMethodFilter.class)
+    @ConditionalOnProperty(prefix = "spring.mvc.hiddenmethod.filter", name = "enabled", matchIfMissing = false) //可以看出默认是不开启的，需要手动配置启动
+    public OrderedHiddenHttpMethodFilter hiddenHttpMethodFilter() {
+        return new OrderedHiddenHttpMethodFilter();
+    }
+    ```
+
+    ```yaml
+    #开启RESTful请求方式
+    mvc:
+    	hiddenmethod:
+        	filter:
+        		enable: true
+    ```
+
+- 因为只有表单发送请求时，才会经过包装为wrapper，被过滤器放行，转而进行PUT、DELETE等请求，但是其他方式（如通过客户端方式postman等），会直接发送RESTful的请求，因此SpringBoot中，默认不是开启的
+
+- 请求映射原理
+
+    - doGet->processRequest->doService->doService实现->doDispatch（每个请求都会调用）
+
+    - 在`getHandler()`方法中，`this.handlerMappings`保存了所有的`@RequestMapping` 和`handler`的映射规则（即controller路径），请求进来时，将所有Controller的处理路径放入一个集合中，将请求进行对比，此时只会对比名称而不会匹配请求方式，然后将筛选出的同名的Controller请求进行对比，当哪个Controller能处理这个请求时，那么这个Controller就是请求所映射的Controller
 
         ```java
-        @Configuration(proxyBeanMethods = false)
-        @ConditionalOnWebApplication(type = Type.SERVLET)
-        @ConditionalOnClass({ Servlet.class, DispatcherServlet.class, WebMvcConfigurer.class })
-        @ConditionalOnMissingBean(WebMvcConfigurationSupport.class)
-        @AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE + 10)
-        @AutoConfigureAfter({ DispatcherServletAutoConfiguration.class, TaskExecutionAutoConfiguration.class,
-        		ValidationAutoConfiguration.class })
-        public class WebMvcAutoConfiguration {
-            ...
-        }
-        ```
-
-    - 给容器中配了什么
-
-        ```java
-        @Configuration(proxyBeanMethods = false)
-        @Import(EnableWebMvcConfiguration.class)
-        @EnableConfigurationProperties({ WebMvcProperties.class, ResourceProperties.class })
-        @Order(0)
-        public static class WebMvcAutoConfigurationAdapter implements WebMvcConfigurer {
-            ...
-        }
-        ```
-
-    - 配置文件的相关属性的绑定：WebMvcProperties==spring.mvc实体类、ResourceProperties==spring.resources实体类
-
-    - 配置类中只有一个有参构造器时，有参构造的参数值都会从容器中确定
-
-###### 3、请求参数处理
-
-- 请求映射
-
-    - 即使用@xxxMapping注解
-
-    - RESTful风格的请求方式需要在SpringBoot中手动开启
-
-        ```java
-        @Bean
-        @ConditionalOnMissingBean(HiddenHttpMethodFilter.class)
-        @ConditionalOnProperty(prefix = "spring.mvc.hiddenmethod.filter", name = "enabled", matchIfMissing = false) //可以看出默认是不开启的，需要手动配置启动
-        public OrderedHiddenHttpMethodFilter hiddenHttpMethodFilter() {
-            return new OrderedHiddenHttpMethodFilter();
-        }
-        ```
-
-        ```yaml
-        #开启RESTful请求方式
-        mvc:
-        	hiddenmethod:
-            	filter:
-            		enable: true
-        ```
-
-    - 因为只有表单发送请求时，才会经过包装为wrapper，被过滤器放行，转而进行PUT、DELETE等请求，但是其他方式（如通过客户端方式postman等），会直接发送RESTful的请求，因此SpringBoot中，默认不是开启的
-
-    - 请求映射原理
-
-        - doGet->processRequest->doService->doService实现->doDispatch（每个请求都会调用）
-
-        - 在`getHandler()`方法中，`this.handlerMappings`保存了所有的`@RequestMapping` 和`handler`的映射规则（即controller路径），请求进来时，将所有Controller的处理路径放入一个集合中，将请求进行对比，此时只会对比名称而不会匹配请求方式，然后将筛选出的同名的Controller请求进行对比，当哪个Controller能处理这个请求时，那么这个Controller就是请求所映射的Controller
-
-            ```java
-            @Nullable
-            protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
-                if (this.handlerMappings != null) {
-                    for (HandlerMapping mapping : this.handlerMappings) {
-                        HandlerExecutionChain handler = mapping.getHandler(request);
-                        if (handler != null) {
-                            return handler;
-                        }
+        @Nullable
+        protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
+            if (this.handlerMappings != null) {
+                for (HandlerMapping mapping : this.handlerMappings) {
+                    HandlerExecutionChain handler = mapping.getHandler(request);
+                    if (handler != null) {
+                        return handler;
                     }
                 }
-                return null;
             }
-            ```
+            return null;
+        }
+        ```
 
-        - SpringBoot自动配置欢迎页的 WelcomePageHandlerMapping 。因此访问 /能访问到index.html；
+    - SpringBoot自动配置欢迎页的 WelcomePageHandlerMapping 。因此访问 /能访问到index.html；
 
-        - 我们需要一些自定义的映射处理，我们也可以自己给容器中放HandlerMapping，自定义HandlerMapping（后面讲）
+    - 我们需要一些自定义的映射处理，我们也可以自己给容器中放HandlerMapping，自定义HandlerMapping（后面讲）
 
-- 常用参数注解使用
+###### 3.2常用参数注解使用
 
-    - @PathVariable 路径变量
-    - @RequestHeader 获取请求头
-    - @RequestParam 获取请求参数（指问号后的参数，url?a=1&b=2）
-    - @CookieValue 获取Cookie值
-    - @RequestAttribute 获取request域属性
-    - @RequestBody 获取请求体[POST]
-    - @MatrixVariable 矩阵变量
-    - @ModelAttribute
+- @PathVariable 路径变量
+- @RequestHeader 获取请求头
+- @RequestParam 获取请求参数（指问号后的参数，url?a=1&b=2）
+- @CookieValue 获取Cookie值
+- @RequestAttribute 获取request域属性
+- @RequestBody 获取请求体[POST]
+- @MatrixVariable 矩阵变量
+- @ModelAttribute
+
+###### 3.3Entity（Bean、POJO）封装过程
+
+###### 3.4参数处理原理
+
+- HandlerMapping中找到能处理请求的Handler（即Controller.method()）
+- 为当前handler找一个适配器HandlerAdapter，默认RequestMappingHandlerAdapter
+- HandlerAdapter（共四种）
+    - RequestMappingHandlerAdapter - 支持方法上标注@RequestMapping
+    - HandlerFunctionAdapter - 支持函数式编程
+    - HttpRequestHandlerAdapter
+    - SimpleControllerHandlerAdapter
+- 执行目标方法
+    - 会找到目标方法的全类名和方法签名
+    - 使用`invokeHandlerMethod(request, response, handlerMethod);` 执行目标方法
+
+- 参数解析器
+    - 确定将要执行的目标方法的每一个参数的值是什么
+    - SpringMVC目标方法能写多少种参数类型，取决于参数解析器
+        - 首先当前解析器会判断是否支持解析传进来的参数
+        - 如果可以，返回true，调用该解析器
+        - 如果不行，则返回false，下一个解析器进行判断
+        - 如RequestHeaderMethodArgumentResolver解析器用来解析注解为@RequestHeader 的参数，即通过`parameter.hasParameterAnnotation(RequestHeader.class)`，判断当前传进来的参数`parameter`是否有RequestHeader这个注解
+- 返回值处理器
+    - 包括ModelAndViewMethodReturnValueHandler、ModelMethodProcessor、ViewMethodeReturnValueHandler等进行返回值的处理
