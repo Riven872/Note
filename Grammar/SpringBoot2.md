@@ -651,7 +651,12 @@
 
 ###### 3.3Entity（Bean、POJO）封装过程
 
+- 数据绑定：页面提交的请求数据（GET、POST）都可以和对象属性（实体对象中的属性）进行绑定
+
 - 传递过来的参数使用ServletModelAttributeMethodProcessor参数处理器处理
+- WebDataBinder：web数据绑定器，将请求参数的值绑定到指定的JavaBean里面
+- WebDataBinder利用它里面的Converters将请求数据转成指定的数据类型，再次封装到JavaBean中
+- GenericConversionService：在设置每一个值的时候，找它里面的所有converter那个可以将这个数据类型（request带来参数的字符串）转换到指定的类型（如自定义User类中的Integer类型）
 
 ###### 3.4参数处理原理
 
@@ -711,6 +716,20 @@
 
 ##### 4、数据响应与内容协商
 
-- 数据绑定：页面提交的请求数据（GET、POST）都可以和对象属性（实体对象中的属性）进行绑定
-
 ###### 4.1响应JSON
+
+- 使用Jackson.jar，并在方法上标注@RequestBody，就可以给前端自动返回Json数据
+- 返回值解析器
+    - 挨个遍历返回值处理器，返回值处理器会判断是否支持这种类型的返回值（supportsReturnType）
+    - 返回值处理器调用handleReturnValue进行处理
+
+###### 4.2内容协商
+
+- 根据客户端接收能力不同，返回不同媒体类型的数据
+- 内容协商原理
+    - 判断当前响应头中是否已经有确定的媒体类型（即MediaType）
+    - 获取客户端（浏览器、Postman等）支持接收的内容类型（即获取客户端请求头的Accept数据，如`accept: application/json`，只接收Json类型的数据）
+    - 遍历循环所有当前系统的MessageConverter，看谁支持操作这个对象（如自定义对象User）
+    - 找到支持操作User的Converter，把Converter支持的媒体类型统计出来
+    - 客户端需要`accept: application/json`，而服务端能力是10种+Json+xml
+    - 找到内容协商的最佳匹配媒体类型
