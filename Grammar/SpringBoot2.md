@@ -651,15 +651,20 @@
 
 ###### 3.3Entity（Bean、POJO）封装过程
 
+- 传递过来的参数使用ServletModelAttributeMethodProcessor参数处理器处理
+
 ###### 3.4参数处理原理
 
 - HandlerMapping中找到能处理请求的Handler（即Controller.method()）
+
 - 为当前handler找一个适配器HandlerAdapter，默认RequestMappingHandlerAdapter
+
 - HandlerAdapter（共四种）
     - RequestMappingHandlerAdapter - 支持方法上标注@RequestMapping
     - HandlerFunctionAdapter - 支持函数式编程
     - HttpRequestHandlerAdapter
     - SimpleControllerHandlerAdapter
+
 - 执行目标方法
     - 会找到目标方法的全类名和方法签名
     - 使用`invokeHandlerMethod(request, response, handlerMethod);` 执行目标方法
@@ -671,5 +676,41 @@
         - 如果可以，返回true，调用该解析器
         - 如果不行，则返回false，下一个解析器进行判断
         - 如RequestHeaderMethodArgumentResolver解析器用来解析注解为@RequestHeader 的参数，即通过`parameter.hasParameterAnnotation(RequestHeader.class)`，判断当前传进来的参数`parameter`是否有RequestHeader这个注解
+
 - 返回值处理器
     - 包括ModelAndViewMethodReturnValueHandler、ModelMethodProcessor、ViewMethodeReturnValueHandler等进行返回值的处理
+
+- 目标方法执行完成
+
+    - 将所有的数据都放在ModelAndViewContainer中，包含要去的页面地址View，还包含Model数据
+
+- 处理派发结果
+
+    - `processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException);`
+
+    - 暴露模型作为请求域属性
+
+        ```java
+        暴露模型作为请求域属性
+        // Expose the model object as request attributes.
+        exposeModelAsRequestAttributes(model, request);
+        ```
+
+    - 然后model中的所有数据遍历挨个放在请求域中
+
+        ```java
+        model.forEach((name, value) -> {
+            if (value != null) {
+                request.setAttribute(name, value);
+            }
+            else {
+                request.removeAttribute(name);
+            }
+        });
+        ```
+
+##### 4、数据响应与内容协商
+
+- 数据绑定：页面提交的请求数据（GET、POST）都可以和对象属性（实体对象中的属性）进行绑定
+
+###### 4.1响应JSON
