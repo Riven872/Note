@@ -726,10 +726,25 @@
 ###### 4.2内容协商
 
 - 根据客户端接收能力不同，返回不同媒体类型的数据
-- 内容协商原理
+
+- 内容协商原理（默认基于请求头）
     - 判断当前响应头中是否已经有确定的媒体类型（即MediaType）
+    
     - 获取客户端（浏览器、Postman等）支持接收的内容类型（即获取客户端请求头的Accept数据，如`accept: application/json`，只接收Json类型的数据）
+    
     - 遍历循环所有当前系统的MessageConverter，看谁支持操作这个对象（如自定义对象User）
+    
     - 找到支持操作User的Converter，把Converter支持的媒体类型统计出来
+    
     - 客户端需要`accept: application/json`，而服务端能力是10种+Json+xml
-    - 找到内容协商的最佳匹配媒体类型
+    
+    - 找到内容协商的最佳匹配媒体类型 
+    
+    - 注：如果通过浏览器请求，请求头无法设置对应的值，浏览器有默认的请求头的值，可以在配置中开启基于请求参数的内容协商功能
+    
+        ```yaml
+        spring:
+        	contentnegotiation:
+        		favor-parameter: true
+        #在发送请求时，添加format字段并说明返回类型即可，如localhost:8080/test/getPerson?format=json，指明返回json类型
+        ```
