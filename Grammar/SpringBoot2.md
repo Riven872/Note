@@ -748,3 +748,77 @@
         		favor-parameter: true
         #在发送请求时，添加format字段并说明返回类型即可，如localhost:8080/test/getPerson?format=json，指明返回json类型
         ```
+
+##### 5、视图解析与模板引擎
+
+###### 5.1视图解析
+
+- SpringBoot工程的打包结果是一个jar包，是压缩包，JSP不支持在压缩包中被编译运行，所以SpringBoot默认不支持JSP，需要引入第三方模板引擎技术实现页面渲染
+
+- 视图处理方式：转发、重定向、自定义视图
+
+###### 5.2模板引擎-Thymeleaf
+
+- 现代化、服务端Java模板引擎
+
+- 引入Starter
+
+- 自动配置好了thymeleaf
+
+    ```java
+    @Configuration(proxyBeanMethods = false)
+    @EnableConfigurationProperties(ThymeleafProperties.class)
+    @ConditionalOnClass({ TemplateMode.class, SpringTemplateEngine.class })
+    @AutoConfigureAfter({ WebMvcAutoConfiguration.class, WebFluxAutoConfiguration.class })
+    public class ThymeleafAutoConfiguration { }
+    ```
+
+- 自动配好的策略
+
+    - 1、所有thymeleaf的配置值都在 ThymeleafProperties
+    - 2、配置好了 SpringTemplateEngine
+    - 3、配好了ThymeleafViewResolver
+    - 4、我们只需要直接开发页面
+
+##### 6、拦截器
+
+- 配置好拦截器要拦截哪些请求
+- 把这些配置放在容器中
+
+```java
+@Override
+public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    HttpSession session = request.getSession();
+    Object loginUser = session.getAttribute("loginUser");
+    if (loginUser != null) {
+        //放行
+        return true;
+    }
+    //拦截，未登录，跳转到登录页
+    //往请求域中添加错误提示信息
+    request.setAttribute("msg", "请先登录");
+    //重定向至登录页
+    //response.sendRedirect("/");
+    request.getRequestDispatcher("/").forward(request, response);
+    return false;
+}
+```
+
+- 编写一个拦截器实现HandlerInterceptor接口
+- 拦截器注册到容器中（实现WebMvcConfiguration的addInterceptor）
+- 指定拦截规则（如果是拦截所有，静态资源也会被拦截）
+
+```java
+@Configuration
+public class AdminWebConfig implements WebMvcConfigurer {
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(new LoginInterceptor())
+                .addPathPatterns("/**")//所有的请求都被拦截，包括静态资源
+                .excludePathPatterns("/", "/login", "/css/**", "/js/**", "/fonts/**", "images/**");//放行的资源，不可以直接/static/**，因为在地址栏访问资源时，是localhost:8080/css/xxx等，没有static的前缀
+    }
+}
+```
+
+
+
