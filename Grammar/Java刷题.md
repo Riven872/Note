@@ -42,6 +42,12 @@
 
 18、自动装箱不提供向上转型，如`Double foo=3;`是错误的
 
+19、静态属性既可以通过实例名访问，也可以直接用类名来访问
+
+20、`&` `|`是按位运算符，如a|b、c&d，效果与逻辑运算符一样，区别在于前面无论true or false，后面的都会执行
+
+21、HttpServletResponse方法调用，给客户端回应了一个定制的HTTP回应头，可以使用`response.setHeader();`如果同名header已存在，则覆盖一个同名header，或者使用`response.addHeader()`;如果同名header已存在，则追加至原同名header后面
+
 
 
 ###### String类、包装类、数据类型、运算
@@ -257,6 +263,31 @@ public static void main(String args[]) {
 - `^`是异或运算符，先转成二进制的数字，比较之后再转回二进制
 - 14是1110，3是0011，相同是0 不同是1，所以14^3=1101，即13
 
+15、以下程序段的输出结果为
+
+```java
+public class EqualsMethod
+{
+    public static void main(String[] args)
+    {
+        Integer n1 = new Integer(47);
+        Integer n2 = new Integer(47);
+        System.out.print(n1 == n2);
+        System.out.print(",");
+        System.out.println(n1 != n2);
+    }
+}
+```
+
+答案：true，false
+
+解析：
+
+- 只要是new的，地址就是不同的
+- 如果是Integer n1 = 47；Integer n2 = 47；则二者是相同的，因为是在缓存中取的
+
+
+
 
 
 ###### 封装、继承、多态
@@ -409,6 +440,40 @@ static void Main(string[] args)
 解析：
 
 - try..catch，catch捕获到异常，如果没有抛出异常语句(throw)，不影响后续程序
+
+3、以下关于JAVA语言异常处理描述正确的有
+
+```
+A.throw关键字可以在方法上声明该方法要抛出的异常。
+B.throws用于抛出异常对象。
+C.try是用于检测被包住的语句块是否出现异常，如果有异常，则捕获异常，并执行catch语句。
+D.finally语句块是不管有没有出现异常都要执行的内容。
+E.在try块中不可以抛出异常
+```
+
+答案：CD
+
+解析：
+
+- Java语言中的异常处理包括声明异常、抛出异常、捕获异常和处理异常四个环节。
+
+- throw用于抛出异常。
+
+- throws关键字可以在方法上声明该方法要抛出的异常，然后在方法内部通过throw抛出异常对象。
+
+- try是用于检测被包住的语句块是否出现异常，如果有异常，则抛出异常，并执行catch语句。
+
+- cacth用于捕获从try中抛出的异常并作出处理。
+
+- finally语句块是不管有没有出现异常都要执行的内容。
+
+- ```java
+    try{
+        throw new Exception();
+    }
+    ```
+
+    因此E是错误的，可以在try块中抛出异常
 
 
 
@@ -652,3 +717,20 @@ Java中对于文本文件和二进制文件，都可以当作二进制文件进�
 - Java中对文件进行读写操作的基本类是IO类；File类是对文件整体或文件属性操作的类
 - 当输入过程中意外到达文件或流的末尾时，抛出EOFException异常，正常情况下读取到文件末尾时，不会抛异常
 - Java中对文本文件和二进制文件都可以当做二进制文件进行操作
+
+2、下列流当中，属于处理流的是
+
+```
+A.FilelnputStream
+B.lnputStream
+C.DatalnputStream
+D.BufferedlnputStream
+```
+
+答案：CD
+
+解析：
+
+- 处理流就是包装流，需要包装基本的流
+- 可以从/向一个特定的IO设备（如磁盘、网络）读/写数据的流，称为节点流，节点流也被成为低级流。
+- 处理流是对一个已存在的流进行连接或封装，通过封装后的流来实现数据读/写功能，处理流也被称为高级流。
