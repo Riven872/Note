@@ -820,5 +820,163 @@ public class AdminWebConfig implements WebMvcConfigurer {
 }
 ```
 
+##### 7、文件上传
 
+- 文件上传代码
 
+    ```java
+    /**
+    * MultipartFile 自动封装上传过来的文件
+    * @param email
+    * @param username
+    * @param headerImg 单个文件
+    * @param photos 多个文件，用数组的形式展示
+    * @return
+    */
+    @PostMapping("/upload")
+    public String upload(@RequestParam("email") String email,
+                         @RequestParam("username") String username,
+                         @RequestPart("headerImg") MultipartFile headerImg,
+                         @RequestPart("photos") MultipartFile[] photos) throws IOException {
+    
+        log.info("上传的信息：email={}，username={}，headerImg={}，photos={}",
+                 email,username,headerImg.getSize(),photos.length);
+    
+        if(!headerImg.isEmpty()){
+            //保存到文件服务器，OSS服务器
+            String originalFilename = headerImg.getOriginalFilename();
+            headerImg.transferTo(new File("H:\\cache\\"+originalFilename));
+        }
+    
+        if(photos.length > 0){
+            for (MultipartFile photo : photos) {
+                if(!photo.isEmpty()){
+                    String originalFilename = photo.getOriginalFilename();
+                    photo.transferTo(new File("H:\\cache\\"+originalFilename));
+                }
+            }
+        }
+    
+    
+        return "main";
+    }
+    
+    ```
+
+- 文件上传自动配置类-MultipartAutoConfiguration-MultipartProperties
+    - 自动配置好了 StandardServletMultipartResolver   【文件上传解析器】
+    - 原理步骤
+        - 1、请求进来使用文件上传解析器判断（isMultipart）并封装（resolveMultipart，返回MultipartHttpServletRequest）文件上传请求
+        - 2、参数解析器来解析请求中的文件内容封装成MultipartFile
+        - 3、将request中文件信息封装为一个Map；MultiValueMap<String, MultipartFile>FileCopyUtils。实现文件流的拷贝
+
+##### 8、异常处理
+
+###### 8.1错误处理
+
+- 默认规则
+    - 默认情况下，Spring Boot提供`/error`处理所有错误的映射
+    - 对于机器客户端，它将生成JSON响应，其中包含错误，HTTP状态和异常消息的详细信息。对于浏览器客户端，响应一个“ whitelabel”错误视图，以HTML格式呈现相同的数据
+    - error/下的4xx.html，5xx.html页面会被自动解析，/error目录可以放在静态资源目录(如 /static/ )下，或放在模板目录(如 /templates/ )下，都会被SpringBoot自动解析。其中，放在/templates/下，可以通过视图渲染获取到SpringBoot提供的默认错误JSON信息内容
+- 定制错误处理逻辑
+    - 自定义错误页：error/404.html   error/5xx.html；有精确的错误状态码页面就匹配精确，没有就找 4xx.html；如果都没有就触发白页
+- 异常处理自动配置
+    - ErrorMvcAutoConfiguration自动配置异常处理规则
+
+##### 9、Web原生组件注入（Servlet、Filter、Listener）
+
+###### 9.1使用Servlet API
+
+- @ServletComponentScan(basePackages = "com.atguigu.admin") :指定原生Servlet组件都放在那里
+- @WebServlet(urlPatterns = "/my")：效果：直接响应，没有经过Spring的拦截器
+- @WebFilter(urlPatterns={"/css/\","/images/\"})
+- @WebListener
+
+###### 9.2使用RegistrationBean
+
+- `ServletRegistrationBean`, `FilterRegistrationBean`, and `ServletListenerRegistrationBean`
+
+##### 10、定制化原理
+
+###### 10.1原理分析套路
+
+- 导入场景启动器starter
+- starter会自动引入xxxAutoConfiguration自动配置
+- 自动配置会往bean容器中导入xxx组件
+- 该组件会绑定xxxProperties
+
+###### 10.2定制化的常见方式
+
+- 修改配置文件
+- xxxxxCustomizer定制化器
+- 编写自定义的配置类xxxConfiguration；+ @Bean替换、增加容器中默认组件；视图解析器
+- Web应用编写一个配置类实现 WebMvcConfigurer 即可定制化web功能；+ @Bean给容器中再扩展一些组件
+    - @EnableWebMvc + WebMvcConfigurer —— @Bean  可以全面接管SpringMVC，所有规则全部自己重新配置； 实现定制和扩展功能
+
+#### 六、数据访问
+
+##### 1、SQL
+
+###### 1.1.1数据源的自动配置——HikariDataSource
+
+- 导入JDBC场景
+
+    ```xml
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-jdbc</artifactId>
+    </dependency>
+    ```
+
+- 为什么导入JDBC场景，官方不导入驱动？因为官方不知道我们接下要操作什么数据库。
+
+###### 1.1.2分析自动配置
+
+- DataSourceAutoConfiguration ： 数据源的自动配置
+    - 修改数据源相关的配置：spring.datasource
+    - 数据库连接池的配置，是自己容器中没有DataSource才自动配置的
+    - 底层配置好的连接池是：HikariDataSource
+- DataSourceTransactionManagerAutoConfiguration： 事务管理器的自动配置
+- JdbcTemplateAutoConfiguration： JdbcTemplate的自动配置，可以来对数据库进行crud
+    - 可以修改这个配置项@ConfigurationProperties(prefix = "spring.jdbc") 来修改JdbcTemplate
+    - @Bean@Primary    JdbcTemplate；容器中有这个组件
+
+###### 1.1.3修改配置项
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/db_account
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.jdbc.Driver
+```
+
+###### 1.2.1使用Druid数据源
+
+- 整合第三方技术的两种方式
+    - 自定义
+    - 找starter
+
+###### 1.2.2自定义方式
+
+- 创建数据源
+
+    ```xml
+    <dependency>
+        <groupId>com.alibaba</groupId>
+        <artifactId>druid</artifactId>
+        <version>1.1.17</version>
+    </dependency>
+    ```
+
+- StatViewServlet
+
+    - 提供监控信息展示的html页面
+    - 提供监控信息的JSON API
+
+- StatFilter
+
+    - 用于统计监控信息；如SQL监控、URI监控
+
+###### 1.2.3使用官方starter方式
