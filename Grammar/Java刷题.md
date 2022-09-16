@@ -52,6 +52,15 @@
 
 21、HttpServletResponse方法调用，给客户端回应了一个定制的HTTP回应头，可以使用`response.setHeader();`如果同名header已存在，则覆盖一个同名header，或者使用`response.addHeader()`;如果同名header已存在，则追加至原同名header后面
 
+22、数组默认值
+
+- 基本类型数组: byte[],short[],int[] ,默认值为0；
+- boolean[]默认值为false；
+- float[],double[],默认值为0.0；
+- 对象类型数组: 默认值为null
+
+23、以下方法实现的单例是线程安全的：枚举；静态内部类；双检索模式；饿汉式。懒汉式如果加了synchronized也是线程安全的
+
 
 
 ###### String类、包装类、数据类型、运算
@@ -392,6 +401,38 @@ D.int answer;
 - B，在接口中，属性默认public static final，这三个关键字可以省略
 - C，没有声明属性的类型
 - D，因为默认是final修饰，final修饰的属性必须赋值
+
+5、对语句行 test.hello(). 描述正确的有
+
+```
+A.能编译通过，并正确运行
+B.因为使用了未初始化的变量，所以不能编译通过
+C.以错误的方式访问了静态方法
+D.能编译通过，但因变量为null，不能正常运行
+```
+
+```java
+package NowCoder;
+class Test {
+	public static void hello() {
+	    System.out.println("hello");
+	}
+}
+public class MyApplication {
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		Test test=null;
+		test.hello();
+	}
+}
+```
+
+答案：A
+
+解析：
+
+- 在其他类的静态方法中是可以调用公开的静态方法，此题hello方法是使用public修饰的所以在MyApplication类中的Main静态方法中调用hello是可以的
+- 虽然test对象是null，但是这里调用类方法，实际上在用Test.hello，即使test为null也无关，因为不会去找到这个test判断它的值再去调用类方法
 
 
 
