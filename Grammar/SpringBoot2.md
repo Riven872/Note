@@ -915,9 +915,7 @@ public class AdminWebConfig implements WebMvcConfigurer {
 
 #### 六、数据访问
 
-##### 1、SQL
-
-###### 1.1.1数据源的自动配置——HikariDataSource
+##### 1、数据源的自动配置——HikariDataSource
 
 - 导入JDBC场景
 
@@ -930,7 +928,7 @@ public class AdminWebConfig implements WebMvcConfigurer {
 
 - 为什么导入JDBC场景，官方不导入驱动？因为官方不知道我们接下要操作什么数据库。
 
-###### 1.1.2分析自动配置
+###### 1.1分析自动配置
 
 - DataSourceAutoConfiguration ： 数据源的自动配置
     - 修改数据源相关的配置：spring.datasource
@@ -941,7 +939,7 @@ public class AdminWebConfig implements WebMvcConfigurer {
     - 可以修改这个配置项@ConfigurationProperties(prefix = "spring.jdbc") 来修改JdbcTemplate
     - @Bean@Primary    JdbcTemplate；容器中有这个组件
 
-###### 1.1.3修改配置项
+###### 1.2修改配置项
 
 ```yaml
 spring:
@@ -952,13 +950,13 @@ spring:
     driver-class-name: com.mysql.jdbc.Driver
 ```
 
-###### 1.2.1使用Druid数据源
+##### 2、使用Druid数据源
 
 - 整合第三方技术的两种方式
     - 自定义
     - 找starter
 
-###### 1.2.2自定义方式
+###### 2.1自定义方式
 
 - 创建数据源
 
@@ -979,4 +977,180 @@ spring:
 
     - 用于统计监控信息；如SQL监控、URI监控
 
-###### 1.2.3使用官方starter方式
+###### 2.2使用官方starter方式
+
+- 引入官方starter
+
+    ```xml
+    <dependency>
+        <groupId>com.alibaba</groupId>
+        <artifactId>druid-spring-boot-starter</artifactId>
+        <version>1.1.17</version>
+    </dependency>
+    ```
+
+- 分析自动配置
+
+    - 扩展配置项 spring.datasource.druid
+        - DruidSpringAopConfiguration.class,   监控SpringBean的；配置项：spring.datasource.druid.aop-patterns
+        - DruidStatViewServletConfiguration.class, 监控页的配置：spring.datasource.druid.stat-view-servlet；默认开启
+        -  DruidWebStatFilterConfiguration.class, web监控配置；spring.datasource.druid.web-stat-filter；默认开启
+
+- 配置示例
+
+    ```yaml
+    spring:
+      datasource:
+        url: jdbc:mysql://localhost:3306/db_account
+        username: root
+        password: 123456
+        driver-class-name: com.mysql.jdbc.Driver
+    
+        druid:
+          aop-patterns: com.atguigu.admin.*  #监控SpringBean
+          filters: stat,wall     # 底层开启功能，stat（sql监控），wall（防火墙）
+    
+          stat-view-servlet:   # 配置监控页功能
+            enabled: true
+            login-username: admin
+            login-password: admin
+            resetEnable: false
+    
+          web-stat-filter:  # 监控web
+            enabled: true
+            urlPattern: /*
+            exclusions: '*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*'
+    
+    
+          filter:
+            stat:    # 对上面filters里面的stat的详细配置
+              slow-sql-millis: 1000
+              logSlowSql: true
+              enabled: true
+            wall:
+              enabled: true
+              config:
+                drop-table-allow: false
+    ```
+
+##### 3、整合Mybatis
+
+###### 3.1配置模式
+
+- 引入官方starter
+
+    ```xml
+    <dependency>
+        <groupId>org.mybatis.spring.boot</groupId>
+        <artifactId>mybatis-spring-boot-starter</artifactId>
+        <version>2.1.4</version>
+    </dependency>
+    ```
+
+- 全局配置文件
+
+- SqlSessionFactory: 自动配置好了
+
+- SqlSession：自动配置了 SqlSessionTemplate 组合了SqlSession
+
+- @Import(AutoConfiguredMapperScannerRegistrar.class）；
+
+- Mapper： 只要我们写的操作MyBatis的接口标注了 @Mapper 就会被自动扫描进来
+
+- 配置Mybatis
+
+    ```yaml
+    # 配置mybatis规则
+    mybatis:
+      config-location: classpath:mybatis/mybatis-config.xml  #全局配置文件位置
+      mapper-locations: classpath:mybatis/mapper/*.xml  #sql映射文件位置
+    ```
+
+- 推荐配置
+
+    ```yaml
+    # 配置mybatis规则
+    mybatis:
+    # config-location: classpath:mybatis/mybatis-config.xml
+      mapper-locations: classpath:mybatis/mapper/*.xml
+      configuration: #指定Mybatis全局配置文件中的相关配置项
+        map-underscore-to-camel-case: true
+        
+    #可以不写全局；配置文件，所有全局配置文件的配置都放在configuration配置项中即可
+    #config-location文件和configuration配置项会冲突，因此采用configuration配置项，而不写config-location配置文件，减少工作量
+    ```
+
+- 配置模式整合Mybatis总结
+
+    - 导入Mybatis官方starter
+    - 编写Mapper接口，要标注@Mapper注解
+    - 编写sql映射文件并绑定Mapper接口
+    - 在application.yaml中指定Mapper配置文件的位置
+
+###### 3.2注解模式
+
+- 直接在注解里写SQL语句
+
+    ```java
+    @Mapper
+    public interface CityMapper {
+    
+        @Select("select * from city where id=#{id}")
+        public City getById(Long id);
+    
+        @Insert("insert into city(name, state, country) values (#{name}, #{state}, #{country})")
+        @option(useGeneratedKeys = true, keyProperty = "id")//用来补充insert语句中需要的其他参数，如这个返回自增主键
+        public void insert(City city);
+    
+    }
+    ```
+
+###### 3.3混合模式
+
+- 可以在注解里写SQL语句，如果太复杂，也可以在写在xml文件中
+
+    ```java
+    @Mapper
+    public interface CityMapper {
+    
+        @Select("select * from city where id=#{id}")
+        public City getById(Long id);
+    
+        public void insert(City city);
+    
+    }
+    ```
+
+###### 3.4总结
+
+- 引入mybatis-starter
+- 配置application.yaml，指定mapper-location位置
+- 编写Mapper接口，并标注@Mapper注解
+- 简单方法直接注解方式
+- 复杂方法编写mapper.xml进行绑定映射
+
+##### 4、整合 MyBatis-Plus 完成CRUD
+
+###### 4.1整合MyBatis-Plus
+
+- 导入starter
+
+    ```xml
+    <dependency>
+        <groupId>com.baomidou</groupId>
+        <artifactId>mybatis-plus-boot-starter</artifactId>
+        <version>3.4.1</version>
+    </dependency>
+    ```
+
+- 自动配置
+
+    - MybatisPlusAutoConfiguration 配置类，MybatisPlusProperties 配置项绑定。mybatis-plus：xxx 就是对mybatis-plus的定制
+    - SqlSessionFactory 自动配置好。底层是容器中默认的数据源
+    - mapperLocations 自动配置好的。有默认值。`classpath*:/mapper/**/*.xml`；任意包的类路径下的所有mapper文件夹下任意路径下的所有xml都是sql映射文件。  建议以后sql映射文件，放在 mapper下
+    - 容器中也自动配置好了 SqlSessionTemplate
+    - @Mapper 标注的接口也会被自动扫描；建议直接 @MapperScan("包的全路径") 批量扫描就行，就不用在每个方法上面标注@Mapper注解
+
+- 只需要我们的Mapper继承 BaseMapper 就可以拥有crud能力
+
+    
