@@ -1153,4 +1153,41 @@ spring:
 
 - 只需要我们的Mapper继承 BaseMapper 就可以拥有crud能力
 
+
+#### 七、单元测试
+
+##### 1、JUnit5
+
+- JUnit 5 = JUnit Platform + JUnit Jupiter + JUnit Vintage
+
+- JUnit Platform: Junit Platform是在JVM上启动测试框架的基础，不仅支持Junit自制的测试引擎，其他测试引擎也都可以接入
+
+- JUnit Jupiter: JUnit Jupiter提供了JUnit5的新的编程模型，是JUnit5新特性的核心。内部 包含了一个测试引擎，用于在Junit Platform上运行。
+
+- JUnit Vintage: 由于JUint已经发展多年，为了照顾老的项目，JUnit Vintage提供了兼容JUnit4.x,Junit3.x的测试引擎。
+
+- 引入starter
+
+    ```xml
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    ```
+
+- 使用注解
+
+    ```java
+    @SpringBootTest //标识整个类为测试类
+    class Boot05WebAdminApplicationTests {
+        @Test //标识该方法为测试方法
+        void contextLoads() {
     
+        }
+    }
+    ```
+
+    
+
+  
