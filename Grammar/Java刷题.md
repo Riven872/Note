@@ -60,10 +60,11 @@
 - 对象类型数组: 默认值为null
 
 23、以下方法实现的单例是线程安全的：枚举；静态内部类；双检索模式；饿汉式。懒汉式如果加了synchronized也是线程安全的
-
 24、new URL()时必须捕获检查异常，但这个异常是由于字符串格式和URL不符导致的，与网址是否存在无关。URL的toString方法返回字符串，无论网址是否存在，所以如果网址不存在，则返回toString后的网址
 
 25、抽象类中不一定包含抽象方法，但是有抽象方法的类必定是抽象类
+
+24、类不可以多继承，但是接口可以，如`Child extends Parent1，Parent2`
 
 
 
@@ -438,6 +439,33 @@ public class MyApplication {
 - 在其他类的静态方法中是可以调用公开的静态方法，此题hello方法是使用public修饰的所以在MyApplication类中的Main静态方法中调用hello是可以的
 - 虽然test对象是null，但是这里调用类方法，实际上在用Test.hello，即使test为null也无关，因为不会去找到这个test判断它的值再去调用类方法
 
+6、尝试编译以下程序会产生怎么样的结果？
+
+```
+A.编译错误将发生在（1），因为构造函数不能指定返回值
+B.编译错误将发生在（2），因为该类没有默认构造函数
+C.编译错误将在（3）处发生，因为该类没有构造函数，该构造函数接受一个int类型的参数
+D.该程序将正确编译和执行
+```
+
+```java
+public class MyClass {
+    long var;
+    public void MyClass(long param) { var = param; }//(1)
+    public static void main(String[] args) {
+        MyClass a, b;
+        a =new MyClass();//(2)
+        b =new MyClass(5);//(3)
+    }
+}
+```
+
+答案：C
+
+解析：
+
+- 有了void 就不是构造函数了，因此`public void MyClass(long param)`算普通的方法
+
 
 
 ###### 异常处理
@@ -744,6 +772,23 @@ D.java进程异常消失
 
 - java是自动管理内存的，通常情况下程序运行到稳定状态，内存大小也达到一个基本稳定的值
 - 但是内存泄露导致Gc不能回收泄露的垃圾，内存不断变大，最终超出内存界限，抛出OutOfMemoryExpection
+
+4、下列Java代码中的变量a、b、c分别在内存的____存储区存放。
+
+```java
+class A {
+    private String a = “aa”;
+    public boolean methodB() {
+        String b = “bb”;
+        final String c = “cc”;
+    }
+}
+```
+
+答案：堆区、栈区、栈区
+
+- 常量池属于堆中
+- 方法内的变量，一般是临时放在栈中
 
 
 
