@@ -64,7 +64,9 @@
 
 25、抽象类中不一定包含抽象方法，但是有抽象方法的类必定是抽象类
 
-24、类不可以多继承，但是接口可以，如`Child extends Parent1，Parent2`
+26、类不可以多继承，但是接口可以，如`Child extends Parent1，Parent2`
+
+27、在getClass没有重写的情况下，会调用Object的getClass，并返回调用者的运行时的类，继续调用getName时，会返回包名.运行时类名。如果需要返回父类的运行时类名，需要写super.getClass().getSuperclass()
 
 
 
