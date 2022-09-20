@@ -68,6 +68,12 @@
 
 27、在getClass没有重写的情况下，会调用Object的getClass，并返回调用者的运行时的类，继续调用getName时，会返回包名.运行时类名。如果需要返回父类的运行时类名，需要写super.getClass().getSuperclass()
 
+28、相同类型的变量、调用同一个方法时呈现出多种不同的行为特征，这就是多态（简单来说就是，**同一领域不同对象**调用相同的方法但表现不同）
+
+29、Java内存区域包括：Java虚拟机栈、堆、方法区、程序计数器、本地方法栈
+
+30、Vector、StringBuffer、Properties是线程安全的
+
 
 
 ###### String类、包装类、数据类型、运算
@@ -306,7 +312,16 @@ public class EqualsMethod
 - 只要是new的，地址就是不同的
 - 如果是Integer n1 = 47；Integer n2 = 47；则二者是相同的，因为是在缓存中取的
 
+16、Java表达式"13 & 17"的结果是什么?
 
+答案：1
+
+解析：
+
+- `&`运算符：两个数据转换为二进制，然后从两个数的最高位进行位运算，两个都为真（1），结果才为真（1），否则为假（0）
+- 13：01101
+- 17：10001
+- 结果：00001，即为1
 
 
 
@@ -791,6 +806,64 @@ class A {
 
 - 常量池属于堆中
 - 方法内的变量，一般是临时放在栈中
+
+5、关于Java语言的内存回收机制，下列选项中最正确的一项是
+
+```
+A.Java程序要求用户必须手工创建一个线程来释放内存
+B.Java程序允许用户使用指针来释放内存
+C.内存回收线程负责释放无用内存
+D.内存回收线程不能释放内存对象
+```
+
+答案：C
+
+解析：
+
+- Java的内存回收是自动的，GC在后台运行，不需要用户手动操作
+- Java中不允许使用指针
+- 内存回收线程可以释放无用的对象内存
+
+6、以下哪项陈述是正确的
+
+```
+A.垃圾回收线程的优先级很高，以保证不再使用的内存将被及时回收
+B.垃圾收集允许程序开发者明确指定释放哪一个对象
+C.垃圾回收机制保证了JAVA程序不会出现内存溢出
+D.进入”Dead”状态的线程将被垃圾回收器回收
+E.以上都不对
+```
+
+答案：E
+
+解析：
+
+- 垃圾回收在JVM中优先级相当相当低
+- 垃圾收集器（GC）程序开发者只能推荐JVM进行回收，但何时回收、回收哪些，程序员不能控制
+- 垃圾回收机制只是回收不再使用的JVM内存，如果程序有严重的BUG，内存会照样溢出
+- 进入DEAD的线程还可以恢复，GC不会回收
+
+7、下面有关java classloader说法正确的是
+
+```
+A.ClassLoader就是用来动态加载class文件到内存当中用的
+B.JVM在判定两个class是否相同时，只用判断类名相同即可，和类加载器无关
+C.ClassLoader使用的是双亲委托模型来搜索类的
+D.Java默认提供的三个ClassLoader是Boostrap ClassLoader，Extension ClassLoader，App ClassLoader
+E.以上都不正确
+```
+
+答案：ACD
+
+解析：
+
+- jdk提供了三个ClassLoader，根据层级从高到低为
+    - 1、Bootstrap ClassLoader：主要加载JVM自身工作需要的类
+    - 2、Extension ClassLoader：主要加载`%JAVA_HOME%\lib\ext`目录下的类库
+    - 3、Application ClassLoader：主要加载ClassPath指定的类库，一般情况下这是程序中的默认类加载器，也是`ClassLoader.getSystemClassLoader()` 的返回值（其中ClassPath默认指的是环境变量中配置的ClassPath，但是可以在执行Java命令的使用使用-cp参数来修改当前程序使用的ClassPath）
+- JVM加载类的实现方式，称为双亲委托模型
+    - 如果一个类加载器收到了类加载的请求，他首先不会自己去尝试加载这个类，而是把这个请求委托给自己的父加载器，每一层的类加载器都是如此。因此所有的类加载请求都应该传送到顶层的BootStrap ClassLoader中，只有当父加载器反馈自己无法完成加载请求时，子加载器才会尝试自己加载
+    - 双亲委托模型的重要用途是为了解决类载入过程中的安全性问题（假设有一个开发者自己编写了一个名为Java.lang.Object的类，想借此欺骗JVM。现在他要使用自定义ClassLoader来加载自己编写的java.lang.Object类。然而幸运的是，双亲委托模型不会让他成功。因为JVM会优先在Bootstrap ClassLoader的路径下找到java.lang.Object类，并载入它）
 
 
 
