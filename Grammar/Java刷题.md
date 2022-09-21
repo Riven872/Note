@@ -74,6 +74,12 @@
 
 30、Vector、StringBuffer、Properties是线程安全的
 
+31、对象相等则HashCode一定相等，但HashCode相等则对象不一定相等，需要进一步查询equals是否相等
+
+32、Iterator  支持从源集合中安全地删除对象，只需在 Iterator 上调用 remove() 即可。有些集合不允许在迭代时删除或添加元素，但是调用 Iterator 的remove() 方法是个安全的做法。
+
+33、int和Integer进行==比较时，会将integer进行自动拆箱进行比较，因此Integer a = new Integer(2020)比较int b = 2020;时a == b
+
 
 
 ###### String类、包装类、数据类型、运算
@@ -323,6 +329,29 @@ public class EqualsMethod
 - 17：10001
 - 结果：00001，即为1
 
+17、下列代码片段中，存在编译错误的语句是
+
+```java
+byte b1=1,b2=2,b3,b6,b8;
+final byte b4=4,b5=6,b7;
+b3=(b1+b2);  /*语句1*/
+b6=b4+b5;    /*语句2*/
+b8=(b1+b4);  /*语句3*/
+b7=(b2+b5);  /*语句4*/
+System.out.println(b3+b6);
+```
+
+答案：语句1、3、4
+
+解析：
+
+- 所有的byte,short,char型的值将被提升为int型
+- 被fianl修饰的变量不会自动改变类型，当2个final修饰相操作时，结果会根据左边变量的类型而转化。
+- 语句1：因此b1+b2时的返回值为int型，但是接收类型是b3，即byte型
+- 语句2：b4、b5为final型，因此不会发生自动转化，以等号左边类型为准转化
+- 语句3：b4不会自动提升，但是b1会自动提升为int型，结果也为int型，但是接收类型是b7，即byte型
+- 语句4：同上，同时b7也为final型，不可以再次赋值
+
 
 
 ###### 封装、继承、多态
@@ -569,6 +598,24 @@ E.在try块中不可以抛出异常
 
     因此E是错误的，可以在try块中抛出异常
 
+4、有关finally语句块正确的是
+
+```
+A.不管catch是否捕获异常，finally语句块都是要被执行的
+B.在try语句块或catch语句块中执行到System.exit(0)直接退出程序
+C.finally块中的return语句会覆盖try块中的return返回
+D.finally 语句块在 catch语句块中的return语句之前执行
+```
+
+答案：ABD
+
+解析：
+
+- 不管有木有出现异常，finally块中代码都会执行；
+- 当try和catch中有return时，finally仍然会执行；
+- finally是在return后面的表达式运算后执行的（此时并没有返回运算后的值，而是先把要返回的值保存起来，管finally中的代码怎么样，返回的值都不会改变，仍然是之前保存的值），所以函数返回值是在finally执行前确定的；
+- finally中最好不要包含return，否则程序会提前退出，返回值不是try或catch中保存的返回值。
+
 
 
 ###### 多线程
@@ -593,23 +640,23 @@ E.在try块中不可以抛出异常
 - 对于多线程资源共享的问题，同步机制采用了“以时间换空间”的方式，而ThreadLocal采用了“以空间换时间”的方式
 - 在Thread中有一个成员变量ThreadLocals，该变量的类型是ThreadLocalMap,也就是一个Map，它的键是threadLocal，值就是变量的副本
 
-3、有关finally语句块正确的是
+3、JDK提供的用于并发编程的同步器有哪些？
 
 ```
-A.不管catch是否捕获异常，finally语句块都是要被执行的
-B.在try语句块或catch语句块中执行到System.exit(0)直接退出程序
-C.finally块中的return语句会覆盖try块中的return返回
-D.finally 语句块在 catch语句块中的return语句之前执行
+A.Semaphore
+B.CyclicBarrier
+C.CountDownLatch
+D.Counter
 ```
 
-答案：ABD
+答案：ABC
 
 解析：
 
-- 不管有木有出现异常，finally块中代码都会执行；
-- 当try和catch中有return时，finally仍然会执行；
-- finally是在return后面的表达式运算后执行的（此时并没有返回运算后的值，而是先把要返回的值保存起来，管finally中的代码怎么样，返回的值都不会改变，仍然是之前保存的值），所以函数返回值是在finally执行前确定的；
-- finally中最好不要包含return，否则程序会提前退出，返回值不是try或catch中保存的返回值。
+- Semaphore用来完成信号量控制，Semaphore可以控制某个资源可被同时访问的个数，通过acquire()获取一个许可，如果没有就等待，而release()释放一个许可
+- CyclicBarrier的主要方法是await()，await()方法每被调用一次，计数便会减少1，并阻塞住当前线程。当计数减至0时，阻塞解除，所有在此CyclicBarrier上面阻塞的线程开始运行
+- CountDownLatch.await()方法在倒计数为0之前会阻塞当前线程
+- Counter不是并发编程的同步器
 
 
 
@@ -755,7 +802,9 @@ D.定义在同一个包（package）内的类可以不经过import而直接相�
 
 解析：
 
-- jvm堆分为：新生代（一般是一个Eden区，两个Survivor区），老年代（old区）
+- JVM堆大小 = 新生代（old） + 老年代（young）
+- 默认情况下，新生代占1/3堆空间大小，老年代占2/3堆空间大小
+- 新生代分为一个Eden和两个Survivor区域，其中两个Survivor区域分别命名为from和to来区分
 - 常量池属于 PermGen（方法区）
 
 2、下面关于JAVA的垃圾回收机制，正确的是
@@ -860,7 +909,7 @@ E.以上都不正确
 - jdk提供了三个ClassLoader，根据层级从高到低为
     - 1、Bootstrap ClassLoader：主要加载JVM自身工作需要的类
     - 2、Extension ClassLoader：主要加载`%JAVA_HOME%\lib\ext`目录下的类库
-    - 3、Application ClassLoader：主要加载ClassPath指定的类库，一般情况下这是程序中的默认类加载器，也是`ClassLoader.getSystemClassLoader()` 的返回值（其中ClassPath默认指的是环境变量中配置的ClassPath，但是可以在执行Java命令的使用使用-cp参数来修改当前程序使用的ClassPath）
+    - 3、Application ClassLoader（也称为系统类加载器SystemClassLoader）：主要加载ClassPath指定的类库，一般情况下这是程序中的默认类加载器，也是`ClassLoader.getSystemClassLoader()` 的返回值（其中ClassPath默认指的是环境变量中配置的ClassPath，但是可以在执行Java命令的使用使用-cp参数来修改当前程序使用的ClassPath）
 - JVM加载类的实现方式，称为双亲委托模型
     - 如果一个类加载器收到了类加载的请求，他首先不会自己去尝试加载这个类，而是把这个请求委托给自己的父加载器，每一层的类加载器都是如此。因此所有的类加载请求都应该传送到顶层的BootStrap ClassLoader中，只有当父加载器反馈自己无法完成加载请求时，子加载器才会尝试自己加载
     - 双亲委托模型的重要用途是为了解决类载入过程中的安全性问题（假设有一个开发者自己编写了一个名为Java.lang.Object的类，想借此欺骗JVM。现在他要使用自定义ClassLoader来加载自己编写的java.lang.Object类。然而幸运的是，双亲委托模型不会让他成功。因为JVM会优先在Bootstrap ClassLoader的路径下找到java.lang.Object类，并载入它）
