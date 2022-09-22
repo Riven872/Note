@@ -913,6 +913,8 @@ public class AdminWebConfig implements WebMvcConfigurer {
 - Web应用编写一个配置类实现 WebMvcConfigurer 即可定制化web功能；+ @Bean给容器中再扩展一些组件
     - @EnableWebMvc + WebMvcConfigurer —— @Bean  可以全面接管SpringMVC，所有规则全部自己重新配置； 实现定制和扩展功能
 
+
+
 #### 六、数据访问
 
 ##### 1、数据源的自动配置——HikariDataSource
@@ -1154,6 +1156,7 @@ spring:
 - 只需要我们的Mapper继承 BaseMapper 就可以拥有crud能力
 
 
+
 #### 七、单元测试
 
 ##### 1、JUnit5
@@ -1188,6 +1191,233 @@ spring:
     }
     ```
 
-    
 
-  
+##### 2、JUnit5常用注解
+
+- @Test：表示方法是测试方法，但是与JUnit4的@Test不同，他的职责非常单一不能声明任何属性，拓展的测试将会由Jupiter提供格外测试
+- @ParameterizedTest :表示方法是参数化测试，下方会有详细介绍
+- @RepeatedTest :表示方法可重复执行，下方会有详细介绍
+- @DisplayName :为测试类或者测试方法设置展示名称
+- @BeforeEach :表示在每个单元测试之前执行
+- @AfterEach :表示在每个单元测试之后执行
+- @BeforeAll :表示在所有单元测试之前执行
+- @AfterAll :表示在所有单元测试之后执行
+- @Tag :表示单元测试类别，类似于JUnit4中的@Categories
+- @Disabled :表示测试类或测试方法不执行，类似于JUnit4中的@Ignore
+- @Timeout :表示测试方法运行如果超过了指定时间将会返回错误
+- @ExtendWith :为测试类或测试方法提供扩展类引用
+- 注：普通单元测试无法取到SpringBoot容器中的组件，需要添加注解@SpringBootTest
+
+##### 3、断言(Assertions)
+
+- 用来检查业务逻辑返回的数据是否合理
+- 所有的测试运行结束以后，会有一个详细的测试报告
+- 断言方法都是org.junit.jupiter.api.Assertions 的静态方法
+- 断言失败时，后面的代码都不会执行
+
+###### 3.1简单断言
+
+- 用来对单个值进行简单的验证
+
+| 方法            | 说明                                 |
+| --------------- | ------------------------------------ |
+| assertEquals    | 判断两个对象或两个原始类型是否相等   |
+| assertNotEquals | 判断两个对象或两个原始类型是否不相等 |
+| assertSame      | 判断两个对象引用是否指向同一个对象   |
+| assertNotSame   | 判断两个对象引用是否指向不同的对象   |
+| assertTrue      | 判断给定的布尔值是否为 true          |
+| assertFalse     | 判断给定的布尔值是否为 false         |
+| assertNull      | 判断给定的对象引用是否为 null        |
+| assertNotNull   | 判断给定的对象引用是否不为 null      |
+
+######   3.2数组断言
+
+- 通过 assertArrayEquals 方法来判断两个对象或原始类型的数组是否相等
+
+###### 3.3组合断言
+
+- 所有的断言成功时才算成功，否则断言失败
+
+    ```java
+    @Test
+    @DisplayName("assert all")
+    public void all() {
+     assertAll("Math", //组合的名称
+        () -> assertEquals(2, 1 + 1), //第一个断言
+        () -> assertTrue(1 > 0) //第二个断言
+     );
+    }
+    ```
+
+###### 3.4异常断言
+
+- 断言一定会抛出异常，如果不抛出，则断言失败
+
+    ```java
+    @Test
+    @DisplayName("异常测试")
+    public void exceptionTest() {
+        ArithmeticException exception = Assertions.assertThrows(
+               //扔出断言异常
+                ArithmeticException.class, () -> System.out.println(1 % 0));
+    
+    }
+    ```
+
+###### 3.5超时断言
+
+- 超出规定的时间则断言失败
+
+    ```java
+    @Test
+    @DisplayName("超时测试")
+    public void timeoutTest() {
+        //如果测试方法时间超过1s将会异常
+        Assertions.assertTimeout(Duration.ofMillis(1000), () -> Thread.sleep(500));
+    }
+    ```
+
+###### 3.6快速失败
+
+- 通过 fail 方法直接使得测试失败
+
+    ```java
+    @Test
+    @DisplayName("fail")
+    public void shouldFail() {
+     fail("This should fail");
+    }
+    ```
+
+##### 4、前置条件(Assumptions)
+
+- 类似于断言，但是区别在于不满足的断言会使测试方法失败，而不满足的前置条件只会使得测试方法的执行终止
+- 前置条件可以看成是测试方式执行的前提，当该前提不满足时，就没有继续进行的必要，如果有多个@Test测试类时，会跳过该不满足前置条件的测试类，类似于@Disabled注解
+
+##### 5、嵌套测试
+
+- JUnit 5 可以通过 Java 中的内部类和@Nested 注解实现嵌套测试，从而可以更好的把相关的测试方法组织在一起。
+- 在内部类中可以使用@BeforeEach 和@AfterEach 注解，而且嵌套的层次没有限制。
+- 内部类可以驱动外部类的@BeforeEach 和@AfterEach方法，而外部类不可以驱动内部类中的@BeforeEach 和@AfterEach方法
+
+##### 6、参数化测试
+
+- 使用不同的参数多次运行测试，即可以指定入参，使用不同参数进行多次单元测试
+
+- @ValueSource: 为参数化测试指定入参来源，支持八大基础类以及String类型,Class类型
+
+- @NullSource: 表示为参数化测试提供一个null的入参
+
+- @EnumSource: 表示为参数化测试提供一个枚举入参
+
+- @CsvFileSource：表示读取指定CSV文件内容作为参数化测试入参
+
+- @MethodSource：表示读取指定方法的返回值作为参数化测试入参(注意方法返回需要是一个流)
+
+- 参数可以来源于其他的方法，如
+
+    ```java
+    @ParameterizedTest   	   //指定该测试方法为参数化测试
+    @MethodSource("foobar")    //指定方法名
+    @DisplayName("方法来源参数")
+    public void testWithExplicitLocalMethodSource(String name) {
+        System.out.println(name);
+        Assertions.assertNotNull(name);
+    }
+    
+    static Stream<String> foobar() {
+        return Stream.of("apple", "banana");
+    }
+    ```
+
+
+
+#### 八、指标监控
+
+8想看，监控微服务的跟我一个菜鸡有啥关系，接触到的时候再说
+
+
+
+#### 九、原理解析
+
+##### 1、Profile功能
+
+- 为了方便多环境适配，SpringBoot简化了profile功能，快速进行环境切换
+- 如在IDEA中连接的是本地的数据库、Redis等，迁移到prd环境时，需要同步的修改连接配置，profile功能简化了这一操作
+
+###### 1.1application-profile功能
+
+- 默认配置文件application.yaml任何时候都会加载
+- 指定环境配置文件，如application-dev，application-test，application-prd
+- 激活指定环境
+    - 配置文件激活，在默认的配置文件中指定激活哪个环境`spring.profiles.active=dev #指定激活的环境`
+    - 命令行激活`java -jar xxx.jar --spring.profiles.active=prd`
+        - 修改配置文件的任意值，命令行优先
+- 默认配置和环境配置同时生效，但是有同名配置项时，环境配置优先
+
+###### 1.2@Profile条件装配功能
+
+- 可以选择配置类、属性等进行不同环境的条件装配
+
+```java
+@Configuration(proxyBeanMethods = false)
+@Profile("prd")//表示只有在prd环境，即prd配置环境被激活时，该配置类才会装配到容器中
+public class ProductionConfiguration {
+
+    // ...
+
+}
+```
+
+###### 1.3@Profile分组
+
+```
+spring.profiles.group.production[0]=proddb
+spring.profiles.group.production[1]=prodmq
+
+#表示如果要激活一个环境时，需要依次激活数个配置文件，则可以进行分组
+#spring.profiles.group.自定义组名[索引]=配置文件名
+
+#使用spring.profiles.active=production激活分组
+```
+
+##### 2、外部化配置
+
+###### 2.1外部配置源
+
+- Java属性文件（properties ）、YAML文件、环境变量、命令行参数
+
+###### 2.2配置文件查找位置
+
+- classpath根路径
+- classpath根路径下config目录
+- jar包当前目录
+- jar包当前目录的config目录
+- /config子目录的直接子目录
+
+###### 2.3配置文件加载顺序
+
+- 1、当前jar包内部的application.properties和application.yaml
+- 2、当前jar包内部的application-{环境名称}.properties和application-{环境名称}.yaml
+- 3、引用的外部jar包的application.properties和application.yaml
+- 4、引用的外部jar包的application-{环境名称}.properties和application-{环境名称}.yaml
+
+###### 2.4指定环境优先，外部优先，后面的可以覆盖前面的同名配置项
+
+##### 3、自定义starter
+
+###### 3.1starter启动原理
+
+- starter->autoconfigure->springboot-starter
+- starter作为场景启动器，没有任何代码，只是用来说明要引入哪些依赖
+- starter也同时引入了该场景的自动配置包autoconfigure
+- autoconfigure引入了最底层的每个模块都要用到的springboot-starter
+- foo-bar-spring-boot-starter（启动器）
+- foo-bar-spring-boot-starter-autoconfigure（自动配置包）
+
+##### 4、SpringBoot原理
+
+- Spring原理、SpringMVC原理、自动配置原理、SpringBoot原理
+
+
+

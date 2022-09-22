@@ -16,7 +16,7 @@
 
 8、Mybatis Plus （约5个半小时 57节 2022-03-02）
 
-9、SpringBoot 2 （约26个小时 87节 2020-12-22）
+9、SpringBoot 2 （约26个小时 87节 2020-12-22 跳过了部分原理，我还会回来的！）
 
 9.5、Spring Security、Maven / Gradle
 
