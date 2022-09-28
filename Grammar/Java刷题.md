@@ -30,7 +30,7 @@
 
 12、Java语言中，中文字符所占的字节数取决于字符的编码方式
 
-13、Java中，HashMap解决冲突用的是拉链法而非定址法
+13、threadlocalmap使用开放定址法解决haah冲突，hashmap使用链地址法解决hash冲突
 
 14、List和Set是collectin的子接口，Map是单独的一个
 
@@ -776,6 +776,22 @@ LinkedHashSet按添加顺序排序，元素的顺序为添加的顺序
 - web容器是一种服务程序，在服务器一个端口就有一个提供相应服务的程序
 - 这个程序就是处理从客户端发出的请求，如Java的Tomcat，ASP的IIS或PWS都是这样的容器
 - 一个服务器可以有多个容器
+
+4、关于 Socket 通信编程，以下描述正确的是
+
+```
+A.客户端通过new ServerSocket()创建TCP连接对象
+B.客户端通过TCP连接对象调用accept()方法创建通信的Socket对象
+C.客户端通过new Socket()方法创建通信的Socket对象
+D.服务器端通过new ServerSocket()创建通信的Socket对象
+```
+
+答案：C
+
+解析：
+
+- 客户端通过new Socket()创建通信的Socket对象
+- 服务端通过new ServletSocket()创建TCP连接对象，accept接纳客户端请求
 
 
 
