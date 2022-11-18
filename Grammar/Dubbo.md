@@ -104,3 +104,17 @@
 - spring解析配置文件中，有一个总接口`BeanDefinitionParser`，即Bean解析器，其中有`DubboBeanDefinitionParser`实现了总接口来解析标签（Spring的IOC容器一启动，就会来解析标签）
 - IOC容器启动：解析配置文件->`DubboNameSpaceHandler`：创建Dubbo标签解析器->`DubboBeanDefinitionParser`：解析Dubbo标签
 - 每个标签都有对应的config，如RegistryConfig、ServiceBean等
+
+###### 5、dubbo服务暴露流程
+
+- ServiceBean解析完毕，等IOC容器创建完成时，会触发`ContextRefreshEvent`进行回调，然后进行服务的暴露
+- `doExportURLs`执行服务暴露
+    - 加载注册中心的信息
+    - 遍历要暴露的协议和端口（即Protocol标签可能有很多个）
+    - 代理工厂ProxyFactory将调用接口的实现对象和URL地址包装成了执行器invoker
+    - 封装成暴露器
+    - dubbo的暴露器会开启服务器，注册中心的暴露器会将服务注册到注册中心
+
+###### 6、dubbo服务引用流程
+
+###### 7、dubbo服务调用流程
