@@ -11,6 +11,7 @@
     <module>cloud-provider-payment9001</module>
     <module>cloud-consumer-order9000</module>
     <module>cloud-api-commons</module>
+    <module>cloud-eureka-server7001</module>
   </modules>
   <!--pom总的父工程-->
   <packaging>pom</packaging>

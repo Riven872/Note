@@ -12,7 +12,11 @@
     <artifactId>cloud-provider-payment9001</artifactId>
 
     <dependencies>
-
+        <!-- 服务注册中心的客户端 eureka-server -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
         <!--引入自己定义的api通用包-->
         <dependency>
             <groupId>com.edu.springcloud</groupId>

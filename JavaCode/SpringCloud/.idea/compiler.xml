@@ -9,14 +9,16 @@
         <outputRelativeToContentRoot value="true" />
         <module name="cloud-api-commons" />
         <module name="cloud-provider-payment9001" />
+        <module name="cloud-eureka-server7001" />
         <module name="cloud-consumer-order9000" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="cloud-api-commons" target="1.8" />
       <module name="cloud-consumer-order9000" target="1.8" />
+      <module name="cloud-eureka-server7001" target="1.8" />
       <module name="cloud-provider-payment9001" target="1.8" />
-      <module name="cloud2022" target="1.8" />
+      <module name="cloud2020" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>
