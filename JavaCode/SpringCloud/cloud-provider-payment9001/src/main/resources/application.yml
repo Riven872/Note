@@ -1,0 +1,16 @@
+server:
+  port: 9001 #微服务端口号
+
+spring:
+  application:
+    name: cloud-payment-service #微服务名称
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource #数据库连接池
+    driver-class-name: com.mysql.cj.jdbc.Driver #mysql驱动
+    url: jdbc:mysql://localhost:3306/springcloud_edu?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.edu.springcloud.entities #所有Entity别名类在的包
