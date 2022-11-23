@@ -9,9 +9,11 @@
   <version>1.0-SNAPSHOT</version>
   <modules>
     <module>cloud-provider-payment9001</module>
+    <module>cloud-provider-payment9002</module>
     <module>cloud-consumer-order9000</module>
     <module>cloud-api-commons</module>
     <module>cloud-eureka-server7001</module>
+    <module>cloud-eureka-server7002</module>
   </modules>
   <!--pom总的父工程-->
   <packaging>pom</packaging>
