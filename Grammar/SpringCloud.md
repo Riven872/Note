@@ -208,3 +208,49 @@
 
 - getForObject，返回对象为响应体中数据转化成的对象，基本上可以理解为Json
 - getForEntity，返回对象为ResponseEntity对象，包含了响应中的一些重要信息，比如响应头、响应状态码、响应体等
+
+###### 4、Ribbon核心组件IRule
+
+- 根据特定算法中从服务列表中选取一个要访问的服务
+    - RoundRobinRule：轮询（默认）
+    - RandomRule：随机
+    - RetryRule：先按照轮询的策略获取服务，如果获取服务失败则在指定时间内进行重试，获取可用的服务
+    - ResponseTimeRule：对轮询策略的扩展，响应速度越快的实例选择权重越大，越容易被选择
+    - BestAvailableRule：会先过滤掉由于多次访问故障而处于断路器跳闸状态的服务，然后选择一个并发量最小的服务
+    - AvailabilityFilteringRule：先过滤掉故障实例，再选择并发较小的实例
+    - ZoneAvoidanceRule：复合判断server所在区域的性能和server的可用性选择服务器
+- 如何替换规则
+    - 自定义配置类不能处在@component的扫描范围内，即不能跟主启动类一个包，否则起不到特殊定制化的作用
+    - 在主启动类添加注解`@RibbonClient(name = "CLOUD-PAYMENT-SERVICE",configuration=MySelfRule.class)`，用来指定使用自定义的Ribbon配置类，且访问的服务为CLOUD-`PAYMENT-SERVICE`微服务
+
+###### 5、Ribbon负载均衡算法
+
+- 轮询算法原理
+    - rest接口第几次请求数 % 服务器集群总数 = 实际调用服务器位置下标
+    - 如：
+        - 名为CLOUD-PAYMENT-SERVICE的微服务有三台服务器，即instance实例数为3
+        - 且假设instance[0]的地址为A，instance[1]的地址为B，instance[2]的地址为C
+        - 请求数为1时：1 % 3 = 1，下标为1，则获得的服务地址为B
+        - 类推。。。
+        - 每次服务重启后，请求次数重置为1
+
+
+
+##### 八、OpenFeign服务接口调用
+
+###### 1、概述
+
+- OpenFeign是一个声明式的Web服务客户端，让编写Web服务客户端变得非常容易，只需创建一个接口并在接口上添加注解即可
+- 使用Ribbon+RestTemplate时，是利用RestTemplate对http请求进行封装处理。而OpenFeign是进一步封装，只需要创建一个接口并使用注解的方式来配置，就可以完成对服务提供方的接口绑定
+- 同时OpenFeign集成了Ribbon，因此实现了客户端的负载均衡
+
+###### 2、OpenFeign使用步骤
+
+- 新建cloud-consumer-feign-order9000
+    - 在yml中，连接到Eureka注册中心
+    - 在主启动类上，添加注解@EnableFeignClients，激活OpenFeign
+    - 新建接口PaymentFeignService，并添加注解`@Component`使IOC容器能扫描到、添加`@FeignClient("CLOUD-PAYMENT-SERVICE")`表明这个是Feign组件使用的接口并指定服务提供者
+    - Controller中的接口去调用本消费者的Feign接口，然后通过Feign接口去注册中心找到对应的提供者，再调用提供者对应的暴露出的接口（即中间隔了一层Feign）
+
+###### 3、OpenFeign超时控制
+
