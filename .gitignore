@@ -1,1 +1,5 @@
 /JavaCode/SpringCloud/.idea
+/JavaCode/SpringCloud/cloud-api-commons/*.iml
+/JavaCode/SpringCloud/cloud-consumer-order9000/*.iml
+/JavaCode/SpringCloud/cloud-provider-payment9001/cloud-provider-payment9001.iml
+/JavaCode/SpringCloud/cloud-provider-payment9001/target
