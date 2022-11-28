@@ -422,9 +422,130 @@
 ###### 4、入门配置
 
 - 新建Module：cloud-gateway-gateway9527
+
 - 配置yml：配置端口、注册进Eureka
+
 - 主启动类：标记`@EnableEurekaClient`注解
+
 - 业务类：只是一个网关，因此不需要业务逻辑
+
 - 9527网关如何做路由映射
     - 目前不想暴露9001端口，希望在9001外面多一层9527
     - yml新增网关配置
+
+- GateWay网关路由的两种配置方式
+
+    - yml文件中配置
+
+    - 代码中注入RouteLocator的Bean
+
+        ```java
+        @Configuration
+        public class GatewayConfig {
+            /**
+             * 配置了一个id为foo_id的路由规则
+             * 当访问地址http://localhost:9527/872时，会自动转发到地址http://www.baidu.com
+             * @param builder
+             * @return
+             */
+            @SuppressWarnings("all")
+            @Bean
+            public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
+                RouteLocatorBuilder.Builder routes = builder.routes();
+                routes.route("foo_id", r ->
+                    r.path("/872").uri("http://www.baidu.com")).build();
+        
+                return routes.build();
+            }
+        }
+        ```
+
+###### 5、通过微服务名实现动态路由
+
+- 默认情况下，Gateway会根据注册中心注册的服务列表，以注册中心上微服务名为路径创建**动态路由进行转发，从而实现动态路由的功能**
+
+- 修改yml配置
+
+    不再uri将地址写死，而是通过微服务名去调用请求，且前缀`lb:`的意思的是要在CLOUD-PAYMENT-SERVICE找到的服务中进行负载
+
+    ```yaml
+    cloud:
+        gateway:
+          discovery:
+            locator:
+              enabled: true #开启从注册中心动态创建路由的功能，利用微服务名进行路由
+          routes:
+            - id: payment_routh #payment_route  #路由的id，没有固定规则但要求唯一，建议配合服务名
+              #uri: http://localhost:9001  
+              uri: lb://CLOUD-PAYMENT-SERVICE #匹配后提供服务的路由地址
+              predicates:
+                - Path=/payment/get/**  #断言，路径相匹配的进行路由
+            - id: payment_routh2
+              #uri: http://localhost:9001
+              uri: lb://CLOUD-PAYMENT-SERVICE #匹配后提供服务的路由地址
+              predicates:
+                - Path=/payment/lb/**
+    ```
+
+###### 6、Predicate的使用
+
+- 相当于路径匹配条件或限制条件，如路径名包含xx的、限定某个日期后才生效等
+- RoutePredicateFactory举例
+    - \- After=2019-09-15T20:58:18.786182+08:00[Asia/Shanghai]：在指定时间（默认时区时间）之后，路由匹配才会生效
+    - \- Before、Between同理，限定路由的生效时间
+    - \- Cookie：带Cookie能访问、不能Cookie能访问、带什么样的Cookie能访问
+    - \- Header、Host、：与Cookie原理相同
+    - \- Method：限定Get或Post等请求才能访问
+    - \- Path：微服务名下，有匹配路径的才能访问
+    - \- Query：要有参数名且值匹配自定义规则才能匹配
+- 总结：Predicate就是为了实现一组匹配规则，让请求过来找到对应的Route进行处理
+
+###### 7、Filter的使用
+
+- 路由过滤器可用于修改进入的HTTP请求和返回的HTTP响应，路由过滤器只能指定路由进行使用
+
+- SpringCloudGateway的Filter
+
+    - 生命周期只有两个：pre、post
+    - 种类只有两种：GatewayFilter（单一的）、GlobalFilter（全局的）
+
+- 自定义全局GlobalFilter
+
+    - 在yml文件中配置
+
+        ```yaml
+        filters:
+        - AddRequestHeader=X-Request-Foo, Bar
+        #filter为AddRequestHeaderGatewayFilterFactory(约定写成AddRequestHeader)，AddRequestHeader过滤器工厂会在请求头加上一对请求头，名称为X-Request-Foo，值为Bar
+        ```
+
+        
+
+    - 需要实现两个接口GlobalFilter和Ordered
+
+    ```java
+    @Component
+    @Slf4j
+    public class MyLogGatewayFilter implements GlobalFilter, Ordered {
+        @Override
+        public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+            String name = exchange.getRequest().getQueryParams().getFirst("userName");
+            if (name == null) {
+                log.info("用户名为空，非法用户");
+                exchange.getResponse().setStatusCode(HttpStatus.NOT_ACCEPTABLE);
+                //请求不合法，过滤请求
+                return exchange.getResponse().setComplete();
+            }
+            //请求合法，继续过滤器链
+            return chain.filter(exchange);
+        }
+    
+        //表示该过滤器的优先级，数字越低优先级越高，通常全局过滤器是最高优先级
+        @Override
+        public int getOrder() {
+            return 0;
+        }
+    }
+    ```
+
+- 作用：全局日志记录、统一网关鉴权等
