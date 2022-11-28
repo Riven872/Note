@@ -6,7 +6,9 @@
 
   <groupId>com.edu.springcloud</groupId>
   <artifactId>cloud2020</artifactId>
-  <version>1.0-SNAPSHOT</version>  <modules>
+  <version>1.0-SNAPSHOT</version>
+
+  <modules>
     <module>cloud-provider-payment9001</module>
     <module>cloud-provider-hystrix-payment9001</module>
     <module>cloud-provider-payment9002</module>
@@ -16,6 +18,7 @@
     <module>cloud-api-commons</module>
     <module>cloud-eureka-server7001</module>
     <module>cloud-eureka-server7002</module>
+    <module>cloud-gateway-gateway9527</module>
   </modules>
   <!--pom总的父工程-->
   <packaging>pom</packaging>

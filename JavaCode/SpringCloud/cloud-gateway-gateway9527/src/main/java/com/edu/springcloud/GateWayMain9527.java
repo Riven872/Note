@@ -3,18 +3,16 @@ package com.edu.springcloud;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.client.circuitbreaker.EnableCircuitBreaker;
 import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 
-@SpringBootApplication
 @Slf4j
+@SpringBootApplication
 @EnableEurekaClient
-@EnableCircuitBreaker
-public class PaymentHystrixMain9001 {
+public class GateWayMain9527 {
 
     public static void main(String[] args) {
-        SpringApplication.run(PaymentHystrixMain9001.class, args);
-        log.info("PaymentHystrixMain9001启动成功");
+        SpringApplication.run(GateWayMain9527.class, args);
+        log.info("GateWayMain9527启动成功");
     }
 
 }

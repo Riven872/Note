@@ -58,6 +58,11 @@ public class PaymentController {
         }
     }
 
+    @GetMapping("/lb")
+    public String getPaymentLB(){
+        return this.serverPort;
+    }
+
     /**
      * 获取注册中心中每个微服务的信息
      * @return

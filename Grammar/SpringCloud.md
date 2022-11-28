@@ -302,4 +302,129 @@
 
 ###### 4、服务降级
 
-- 使用降级配置注解`@HystrixCommand(fallbackMethod = "paymentInfo_TimeOutHandler")`，表明使用注解的方法出现问题时，fallbackMethod内指定的方法作为兜底方法处理，即服务降级的fallback
+- 使用降级配置注解
+
+    ```java
+    @HystrixCommand(fallbackMethod = "paymentInfo_TimeOutHandler",
+                    commandProperties = {@HystrixProperty(name="execution.isolation.thread.timeoutInMilliseconds", value = "3000")})
+    @Override
+    public String paymentInfo_TimeOut(Integer id) {
+        try {
+            TimeUnit.SECONDS.sleep(5);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return "线程池：" + Thread.currentThread() +
+            " paymentInfo_OK，id：" + id +
+            " 耗时: 5s";
+    }
+    ```
+
+    - fallbackMethod表明该方法执行错误或超时，则调用目标方法进行兜底
+    - `@HystrixProperty`表示该方法的自身调用超时峰值为3000ms，超时则调用服务降级fallback
+
+- 在主启动类激活降级配置注解，`@EnableCircuitBreaker`
+
+- 服务降级一般放在客户端，以上的服务端只是为了演示（而且客户端使用了OpenFeign，因此与服务端的注解不同）
+
+    - 在yml中添加配置：feign:hystrix:enabled:true，开启Hystrix服务降级
+    - 主启动类：添加注解`@EnableHystrix`
+
+- 需要解决的问题
+
+    - 每个方法都需要配置一个fallback方法，导致代码膨胀
+        - 设置全局的fallback方法，在没有单独指定时，将该方法作为默认fallback方法
+        - 类上添加注解`@DefaultProperties(defaultFallback = "payment_Global_FallbackMethod")`，表明该类中有默认的全局fallback方法payment_Global_FallbackMethod
+        - 在方法上添加注解`@HystrixCommand`，表明该方法没有单独指定，将默认的方法作为fallback
+    - fallback方法跟业务逻辑混在一起，造成代码混乱
+        - 为Feign客户端定义的接口添加一个服务降级处理的实现类即可实现解耦
+        - 异常类型：运行时异常、超时、服务器宕机
+        - 新建一个类，并实现Feign接口，为接口里的每一个方法进行异常处理
+        - 在Feign接口上更改注解：`@FeignClient(value = "CLOUD-PROVIDER-HYSTRIX-PAYMENT", fallback = PaymentFallbackService.class)`，表明fallback的位置
+
+###### 5、服务熔断
+
+- 应对雪崩效应的一种微服务链路保护机制，当链路的某个微服务出错不可用或者响应时间太长时，会进行服务降级，进而熔断该节点微服务的调用，快速返回错误的响应信息，**当检测到该节点微服务响应正常后，恢复调用链路**
+
+- Hystrix会监控微服务间的调用状况，当失败的调用到一次阈值，缺省是5s内20次调用失败，就会启动熔断机制
+
+- 服务熔断注解
+
+    ```java
+    //在60s内，至少有10次请求且失败率在60%时，就会触发断路器。就算有9次请求，且全部失败，也不会触发断路器
+    @HystrixCommand(fallbackMethod = "paymentCircuitBreaker_fallback", commandProperties = {
+        //是否开启断路器
+        @HystrixProperty(name = "circuitBreaker.enabled", value = "true"),
+        //熔断判断逻辑中最小的请求数
+        @HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "10"),
+        //时间窗口期（时间范围）
+        @HystrixProperty(name = "circuitBreaker.sleepWindowInMilliseconds", value = "10000"),
+        //失败率到达多少后跳闸
+        @HystrixProperty(name = "circuitBreaker.errorThresholdPercentage", value = "60")
+    })public String paymentCircuitBreaker(@PathVariable("id") Integer id) {
+        
+    }
+    ```
+
+- 服务降级->进而熔断->恢复调用链路
+
+    - 服务降级：当运行时异常、超时或服务器宕机时，会调用声明的fallback方法，即服务降级
+    - 进而熔断：当请求的次数和失败率到达阈值时，断路器触发，此时就算没有运行异常、超时、服务器恢复，所有的请求也会处于服务降级状态
+    - 恢复调用链路：在熔断情况下，如果有持续的请求进来，且成功率不断上升时，会自动关闭断路器，链路调用恢复
+
+- 熔断类型
+
+    - 熔断打开：请求不再进行调用当前服务，内部设置时钟一般为MTTR（平均故障处理时间），当打开时长达到所设时钟则进入半熔断状态
+    - 熔断关闭：熔断关闭时不会对服务进行熔断
+    - 熔断半开：部分请求根据规则调用当前服务，如果请求成功且符合规则就认为当前服务恢复正常，关闭熔断
+
+- 在熔断后关闭的一段时间内（默认5s，可以自定义），这个时候断路器处于半开状态，会让其中一个请求进行转发，如果成功，断路器关闭，若失败，断路器继续开启，所有请求都不会进行转发（即不会调用主逻辑，而是直接调用降级fallback）
+
+###### 6、服务限流（SpringCloud Alibab的Sentinel讲解）
+
+###### 7、服务监控HystrixDashboard
+
+。。。
+
+
+
+##### 十、Gateway路由网关
+
+###### 1、概述
+
+- SpringCloud Gateway是基于WebFlux框架实现的，而WebFlux框架底层则使用了高性能的Reactor模式通信框架Netty（即基于非阻塞模型进行开发）
+- 功能：反向代理、鉴权、流量控制、熔断、日志监控等
+- 在微服务架构中，一般是：外部请求->负载均衡->网关->每个微服务
+- 特性
+    - 基于Spring5、Reactor和SpringBoot2构建
+    - 动态路由，能够匹配任何请求属性
+    - 可以对路由指定Predicate（断言）和Filter（过滤器）
+    - 集成Hystrix的断路器功能
+    - 集成SpringCloud服务发现功能
+    - 请求限流功能
+    - 支持路径重写
+- 与Zuul的区别
+    - Zuul使用的是阻塞架构，性能差
+    - Gateway支持非阻塞API、长连接、websocket 
+
+###### 2、三大核心概念
+
+- 路由（route）：是构建网关的基本模块，由ID、目标URI、一系列的断言和过滤器组成，如果断言为true则匹配该路由
+- 断言（predicate）：匹配HTTP请求中的所有内容（如请求头或请求参数），如果请求与断言相匹配则进行路由
+- 过滤（filter）：指Spring框架中GatewayFilter的实例，使用过滤器，可以在请求被路由前或者之后对请求进行修改
+
+###### 3、Gateway工作流程
+
+- 客户端向SpringCloud Gateway发出请求，然后在Gateway Handler Mapping中找到与请求相匹配的路由，将其发送到Gateway Web Handler，Handler再通过指定的过滤器链来将请求发送到我们实际的服务执行业务逻辑，然后返回（过滤器可能会在发送代理请求之前pre或之后post执行业务逻辑）
+- Filter在pre类型的过滤器可以做参数校验、权限校验、流量监控、日志输出、协议转换等等，在post类型的过滤器中可以做响应内容 、响应头的修改、日志的输出、流量监控等
+- 核心逻辑：路由转发+执行过滤器链
+
+###### 4、入门配置
+
+- 新建Module：cloud-gateway-gateway9527
+- 配置yml：配置端口、注册进Eureka
+- 主启动类：标记`@EnableEurekaClient`注解
+- 业务类：只是一个网关，因此不需要业务逻辑
+- 9527网关如何做路由映射
+    - 目前不想暴露9001端口，希望在9001外面多一层9527
+    - yml新增网关配置
