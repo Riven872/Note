@@ -3,4 +3,24 @@ server:
 
 spring:
   application:
-    name:
+    name: config-client
+  cloud:
+    config:
+      label: note #分支名称
+      name: config  #配置文件名称
+      profile: dev  #读取后缀名称
+      uri: http://localhost:3344  #配置中心地址
+      #读取位置为：http://localhost:3344/note/config-dev.yml
+
+#服务注册进Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:7001/eureka
+
+# 暴露监控端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"

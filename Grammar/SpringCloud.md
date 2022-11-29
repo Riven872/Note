@@ -572,6 +572,71 @@
 - 新建Module：cloud-config-client-3355
     - 新建bootstrap.yml，bootstrap是系统级的，优先级更高，application是用户级的资源配置项
         - bootstrap context负责从**外部源**加载配置属性并解析配置，优先加载。
+        
         - 其后加载自身的application，随后加载。
+        
         - 两次加载组成了自身完成的配置文件
+        
+        - ```yaml
+            cloud:
+                config:
+                  label: note #分支名称
+                  name: config  #配置文件名称
+                  profile: dev  #读取后缀名称
+                  uri: http://localhost:3344  #配置中心地址
+                  #读取位置为：http://localhost:3344/note/config-dev.yml
+            ```
 
+- 向外部暴露一个rest接口，用来获取配置中心中的信息
+- 动态刷新的问题：手动在外部配置中心修改数据后，刷新3344（Config服务端）会得到修改的数据， 但3355（Config客户端）刷新并不会获取的新的数据
+
+###### 4、Config客户端的动态刷新
+
+- 避免每次更新配置都需要重启Config客户端微服务
+
+- 动态刷新步骤(手动版)
+
+    - 在POM中引入actuator监控
+
+    - 修改yml，暴露监控端口
+
+        ```yaml
+        # 暴露监控端点
+        management:
+          endpoints:
+            web:
+              exposure:
+                include: "*"
+        ```
+
+    - 在业务类（即需要从服务端获取配置的controller类）上添加注解`@RefreshScope`
+
+    - 发送post请求刷新3355，`curl -X POST "http://localhost:3355/actuator/refresh"`
+
+- 手动动态刷新存在的问题：如果微服务很多，需要发多次post请求，因此引入消息总线
+
+
+
+##### 十二、SpringCloud Bus消息总线
+
+###### 1、概述
+
+- 分布式自动刷新配置功能，SpringCloud Bus配合SpringCloud Config使用可以实现配置的全自动动态刷新
+- Bus支持两种消息代理：RabbitMQ、Kafka（SpringCloud Alibaba会支持的多一点）
+- SpringCloud Bus是用来将分布式系统的**节点**与轻量级**消息系统**链接起来的**框架**，它整合了Java的事件处理机制和消息中间件的功能
+- 功能
+    - Spring Cloud Bus能管理和传播分布式系统间的消息，就像一个分布式执行器，可用于广播状态更改、事件推送等，也可以当作微服务间的通信通道
+- 什么是总线：
+    - 在微服务架构的系统中，通常会使用轻量级的消息代理来构建一个共用的消息主题，并让系统中所有微服务实例都连接上来
+    - 由于该主题中产生的消息会被所有实例监听和消费，所以被称为消息总线
+    - 在总线上的各个实例，都可方便地广播一些需要让其他连接在该主题上的实例都知道的消息
+- 基本原理：
+    - ConfigClient实例都监听MQ中同一个topic（默认是SpringCloudBus），当一个服务刷新数据的时候，它会把这个信息放入到Topic中，这样其它监听同一Topic的服务就能得到通知，然后去更新自身的配置
+
+###### 2、RabbitMQ环境配置
+
+回来补
+
+
+
+##### 十三、SpringCloud Stream消息驱动
