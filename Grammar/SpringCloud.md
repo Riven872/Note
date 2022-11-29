@@ -511,16 +511,6 @@
 
 - 自定义全局GlobalFilter
 
-    - 在yml文件中配置
-
-        ```yaml
-        filters:
-        - AddRequestHeader=X-Request-Foo, Bar
-        #filter为AddRequestHeaderGatewayFilterFactory(约定写成AddRequestHeader)，AddRequestHeader过滤器工厂会在请求头加上一对请求头，名称为X-Request-Foo，值为Bar
-        ```
-
-        
-
     - 需要实现两个接口GlobalFilter和Ordered
 
     ```java
@@ -547,5 +537,41 @@
         }
     }
     ```
-
+    
 - 作用：全局日志记录、统一网关鉴权等
+
+
+
+
+##### 十一、SpringCloud Config分布式配置中心
+
+###### 1、概述
+
+- 微服务中的每个子服务都需要必要的配置才能运行，所以一套集中式的、动态的配置管理设施必不可少，SpringCloud提供了ConfigServer来解决这个问题
+- SpringCloud Config为微服务架构中的微服务提供集中化的外部配置支持，配置服务器为各个不同微服务应用的所有环境提供了一个**中心化的外部配置**(如上传到Git)
+- SpringCloud Config分为服务端和客户端两部分
+    - 服务端：分布式配置中心，是一个独立的微服务应用，用来连接配置服务器并为客户端提供**获取配置信息**、**加密\解密信息**等访问接口
+    - 客户端：通过指定的配置中心来管理应用资源，以及与业务相关的配置内容，并在启动的时候从配置中心获取和加载配置信息。配置服务器默认采用git来存储配置信息，有助于对环境配置进行版本管理，并且可以通过git工具方便管理和访问配置内容
+- 功能：
+    - 集中管理配置文件
+    - 不同环境不同配置，动态化的配置更新，分环境部署如dev/test/prod/beta/release
+    - 运行期间动态调整配置，不再需要在每个服务器部署的机器上编写配置文件，服务会向配置中心统一拉取配置自己的信息
+    - 当配置发生变动时，服务不再需要重启即可感知到配置的变化并应用新的配置
+    - 将配置信息以REST接口的形式暴露
+
+###### 2、Config服务端配置
+
+- 在Git上建立配置中心仓库，存放config-dev、test、prod.yml配置文件
+- 新建Module：cloud-config-center-3344
+    - 修改Yml：添加中心化的外部配置路径
+    - 主启动类：添加注解`@EnableConfigServer`，其中`@EnableEurekaClient`也可也不加，因为已经在yml里配置了注册进Eureka
+    - 修改host：127.0.0.1 config-3344.com，添加映射，当访问config-3344.com时实际访问的是127.0.0.1
+
+###### 3、Config客户端配置
+
+- 新建Module：cloud-config-client-3355
+    - 新建bootstrap.yml，bootstrap是系统级的，优先级更高，application是用户级的资源配置项
+        - bootstrap context负责从**外部源**加载配置属性并解析配置，优先加载。
+        - 其后加载自身的application，随后加载。
+        - 两次加载组成了自身完成的配置文件
+

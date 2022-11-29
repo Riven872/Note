@@ -1,0 +1,22 @@
+server:
+  port: 3344
+
+spring:
+  application:
+    name: cloud-config-center #注册进Eureka服务器的微服务名
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/Riven872/Note.git #GitHub上配置中心仓库名（中心化的外部配置）
+          search-paths:
+            - SpringCloudConfig  #搜索目录
+          username: #
+          password: #
+          skip-ssl-validation: true
+      label: note #读取分支
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:7001/eureka

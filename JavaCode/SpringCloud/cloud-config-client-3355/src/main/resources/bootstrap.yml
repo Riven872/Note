@@ -1,0 +1,6 @@
+server:
+  port: 3355
+
+spring:
+  application:
+    name:
