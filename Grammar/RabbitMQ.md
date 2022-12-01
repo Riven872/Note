@@ -247,3 +247,82 @@ public class Consumer {
 
 - 交换机与队列之间的桥梁，用来表明交换机和哪个队列进行了绑定关系。即交换机通过RoutingKey来将消息路由到对应的队列中
 
+###### 4、fanout交换机（发布/订阅模式）
+
+- 将接收到的所有消息广播到它知道的所有队列中
+- 即routingkey相同，交换机将消息发送到所有routingkey相同的队列，达成消息共享的功能
+- 消费者
+    - 声明一个fanout类型的交换机`channel.exchangeDeclare(EXCHANGE_NAME, "fanout");`
+    - 将交换机与队列通过routingKey（可以为空串）进行绑定`channel.queueBind(QUEUE_NAME,EXCHANGE_NAME, "");`
+    - 接收消息`channel.basicConsume()`
+- 生产者
+    - 声明一个fanout类型的交换机`channel.exchangeDeclare(EXCHANGE_NAME, "fanout");`（如果已经有了声明，就可以不用再声明）
+    - 通过routingKey值，将消息发送到绑定的交换机`channel.basicPublish(EXCHANGE_NAME, "", null, message.getBytes("UTF-8"));`
+
+###### 5、direct交换机（路由模式）
+
+- 一个交换机绑定多个队列，且routingkey不同。达成消息不共享的功能
+- 如果routingkey没有绑定队列，那么通过该routingkey发送的消息将会丢失
+
+###### 6、Topics交换机
+
+- topic交换机routingkey的规则
+    - 必须是一个单词列表，以点号分隔开，如“stock.order.user”
+    - 星号可以代替一个单词
+    - 井号可以代替零个或多个单词
+- 如，有以下三个routingkey
+    - \*.orange.\*，路由队列为Q1
+    - \*.\*.rabbit ，路由队列为Q2
+    - lazy.#，路由队列为Q2
+    - quick.orange.rabbit 被队列 Q1Q2 接收到
+    - lazy.orange.elephant 被队列 Q1Q2 接收到
+    - quick.orange.fox 被队列 Q1 接收到
+    - lazy.brown.fox 被队列 Q2 接收到
+    - azy.pink.rabbit 虽然满足两个绑定但只被队列 Q2 接收一次
+    - quick.brown.fox 不匹配任何绑定不会被任何队列接收到会被丢弃
+    - quick.orange.male.rabbit 是四个单词不匹配任何绑定会被丢弃
+    - lazy.orange.male.rabbit 是四个单词但匹配 Q2
+- 特殊情况
+    - 当一个队列的绑定键是#，那么这个队列将接收所有的数据，退化为fanout
+    - 当一个队列绑定键中，没有#和*，那么这个队列退化为direct
+
+
+
+##### 七、死信队列
+
+###### 1、概念
+
+- 由于特定的原因导致queue中的某些消息无法被消费，这样的消息如果没有后续的处理，就变成了死信
+- 应用场景
+    - 当消息消费发生异常时，将消息投入到死信队列，保证订单业务的消息数据不丢失
+    - 用户在商城下单成功并点击去支付后，在指定的时间未支付自动失效
+
+- 死信的来源
+    - 消息TTL过期，还没来得及消费就过期了
+    - 队列达到最大长度，队列满了，无法再添加数据到mq中
+    - 消息被拒绝（reject或nack），并且不再放回到队列中（requeue=false），**此时放入死信队列，后续处理**
+
+###### 2、实际应用
+
+- 简单死信架构
+
+![image-20221201135348109](D:\GitHub\Note\Grammar\img_md\image-20221201135348109.png)
+
+- 消费者C1
+    - 声明普通交换机
+    - 声明死信交换机
+    - 声明普通队列：`Map<String, Object> args = new HashMap<>()`（以TTL过期为例）
+        - TTL过期时间可以由生产者指定，也可以普通队列指定
+        - 普通队列设置死信交换机：args.put("x-dead-letter-exchange", "死信交换机名称")
+        - 普通队列设置死信routingKey：args.put("x-dead-letter-exchange", "自定义routingKey")
+        - 完成声明普通队列：queueDeclare(参数1, 参数2, 参数3, 参数4, args );
+    - 声明死信队列
+    - 通过routingKey绑定普通队列和普通交换机
+    - 通过routingKey绑定死信队列和死信交换机
+    - 消费者C1接收消息
+- 生产者Producer
+    - 设置TTL：`AMQP.BasicProperties properties = new AMQP.BasicProperties().builder.exiration("10*1000").build()`
+    - 发送死信消息：basicPublish(参数1，参数2，properties，参数4)
+- 消费者C2
+    - 消费者C2接收消息：basicConsume("死信队列名称"，参数2，参数3，参数4)
+
