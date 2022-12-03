@@ -30,6 +30,7 @@ public class PaymentController {
 
     /**
      * 测试使用
+     *
      * @param payment
      * @return
      */
@@ -45,6 +46,7 @@ public class PaymentController {
 
     /**
      * 测试使用
+     *
      * @param id
      * @return
      */
@@ -59,16 +61,17 @@ public class PaymentController {
     }
 
     @GetMapping("/lb")
-    public String getPaymentLB(){
+    public String getPaymentLB() {
         return this.serverPort;
     }
 
     /**
      * 获取注册中心中每个微服务的信息
+     *
      * @return
      */
     @GetMapping("/discovery")
-    public Object discovery(){
+    public Object discovery() {
         //region 获取注册中心中，所有的服务
         List<String> services = discoveryClient.getServices();
         services.forEach(service -> {
@@ -82,11 +85,16 @@ public class PaymentController {
             log.info("CLOUD-PAYMENT-SERVICE实例中的服务信息为：" +
                     instance.getServiceId() + "，" +
                     instance.getHost() + "，" +
-                    instance.getPort()  + "" +
+                    instance.getPort() + "" +
                     instance.getUri());
         }
         //endregion
 
         return this.discoveryClient;
+    }
+
+    @GetMapping("/zipkin")
+    public String paymentZipkin() {
+        return "服务提供端9001的zipkin的回调";
     }
 }

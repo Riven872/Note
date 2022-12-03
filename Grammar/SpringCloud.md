@@ -611,7 +611,7 @@
 
     - 在业务类（即需要从服务端获取配置的controller类）上添加注解`@RefreshScope`
 
-    - 发送post请求刷新3355，`curl -X POST "http://localhost:3355/actuator/refresh"`
+    - 发送post请求刷新3355，`curl -X POST "http://localhost:3355/actuator/bus-refresh"`
 
 - 手动动态刷新存在的问题：如果微服务很多，需要发多次post请求，因此引入消息总线
 
@@ -631,12 +631,160 @@
     - 由于该主题中产生的消息会被所有实例监听和消费，所以被称为消息总线
     - 在总线上的各个实例，都可方便地广播一些需要让其他连接在该主题上的实例都知道的消息
 - 基本原理：
-    - ConfigClient实例都监听MQ中同一个topic（默认是SpringCloudBus），当一个服务刷新数据的时候，它会把这个信息放入到Topic中，这样其它监听同一Topic的服务就能得到通知，然后去更新自身的配置
+    - ConfigClient实例都监听MQ中同一个exchange交换机（默认是SpringCloudBus），当一个服务刷新数据的时候，它会把这个信息放入到exchange交换机中，这样其它监听同一exchange交换机的服务就能得到通知，然后去更新自身的配置
 
 ###### 2、RabbitMQ环境配置
 
-回来补
+- 安装RabbitMq+配置等，简单
+
+###### 3、SpringCloud Bus动态刷新全局广播
+
+- 新建Module：cloud-config-client-3366，作为另一个config客户端
+- 设计思想：
+    - 方案一：利用消息总线触发一个客户端/bus/refresh，从而刷新所有的客户端配置
+    - 方案二：利用消息总线触发一个服务端ConfigServer的/bus/refresh断点，而刷新所有的客户端配置
+    - 不使用方案一的原因：
+        - 打破了微服务的职责单一性，因为微服务本身是业务模块，不应该承担配置刷新的职责
+        - 破坏了微服务各节点的对等性
+        - 有一定的局限性：如微服务在迁移时，网络地址会发生变化，此时如果想要做到自动刷新，那就会增加更多的修改
+- 给3344配置中心服务端添加消息总线支持
+    - 添加pom：`spring-cloud-starter-bus-amqp`
+    - 修改yaml：添加rabbitmq的配置、暴露bus刷新配置的端点
+- 给3355、3366客户端添加消息总线支持
+    - 添加pom：`spring-cloud-starter-bus-amqp`
+    - 修改yaml：添加rabbitmq的配置（前面已经配置过暴露监控端口）
+- 此时，只需要往3344发送POST请求refresh就可以实现，一次发送处处生效：`curl -X POST "http://localhost:3344/actuator/bus-refresh`
+
+###### 4、SpringCloud Bus动态刷新定点通知
+
+- 指定某一个实例生效，而不是全部
+- 使用`curl -X POST "http://localhost:配置中心的端口号/actuator/bus-refresh/微服务名称:端口号"`，如`curl -X POST "http://localhost:3344/actuator/bus-refresh/config-client:3355"`
 
 
 
 ##### 十三、SpringCloud Stream消息驱动
+
+###### 1、概述
+
+- 屏蔽底层消息中间件的差异，降低切换成本，统一消息的编程模型（是一个构建消息驱动微服务的框架）
+- 应用程序通过 inputs（消费者）或者 outputs（生产者）来与 Spring Cloud Stream中binder对象交互。通过我们配置来binding(绑定) ，而 Spring Cloud Stream 的 binder对象负责与消息中间件交互。所以，我们只需要搞清楚如何与 Spring Cloud Stream 交互就可以方便使用消息驱动的方式。
+
+- 通过定义绑定器（Binder）作为中间层，实现了应用程序与消息中间件细节之间的隔离
+- 通过向应用程序暴露统一的Channel通道，使应用程序不需要再考虑各种不同的消息中间件实现
+- SpringCloud Stream标准流程套路
+    - Binder：很方便的连接中间件，屏蔽差异
+    - Channel：是队列Queue的一种抽象，在消息通讯系统中就是实现存储和转发的媒介，通过Channel对队列进行配置
+    - Source和Sink：参照对象是SpringCloudStream自身，从Stream发布消息就是输出，接受消息就是输入
+
+###### 2、案例说明
+
+- 新建三个子模块
+    - cloud-stream-rabbitmq-provider8801，作为生产者进行发消息模块
+    - cloud-stream-rabbitmq-consumer8802，作为消息接收模块
+    - cloud-stream-rabbitmq-consumer8803， 作为消息接收模块
+
+###### 3、消息驱动之生产者
+
+- 新建module：cloud-stream-rabbitmq-provider8801
+    - 添加pom：`spring-cloud-starter-stream-rabbit`
+    - 修改yml：有丶多的，看自己怎么配置的
+    - 业务类：
+        - 在实现类中，添加注解`@EnableBinding(Source.class)`来定义消息的推送管道
+        - 定义消息发送管道`private MessageChannel output`
+        - 使用`output.send()`发送消息
+
+###### 4、消息驱动之消费者
+
+- 新建module：cloud-stream-rabbitmq-consumer8802
+    - 添加pom：`spring-cloud-starter-stream-rabbit`
+    - 修改yml：跟8801生产者差不多，唯一变动是output改成input（注：如果使用虚拟机中的mq，需要再单独配置一下mq）
+    - 业务类
+        - 只有一个controller，在类上添加注解`@EnableBinding(Sink.class)`来绑定监听的管道
+        - 在接收消息的方法上添加监听注解`@StreamListener(Sink.INPUT)`
+
+###### 5、小总结
+
+- 屏蔽了Rabbitmq的细节，使用Stream实现了生产消息和接收消息（并没有用到Rabbitmq的api去操作）
+- `@Input`，标识输入通道，通过该输入通道接收到的消息进入应用程序
+- `@Output`，标识输出通道，发布的消息将通过该通道离开应用程序
+- `@StreamListener`，监听队列，用于消费者的队列的消息接收
+- `@EnableBinding`，指信道channel和exchange绑定在一起
+
+###### 6、分组消费与持久化
+
+- 新建module：cloud-stream-rabbitmq-consumer8803，与8802相同
+- 存在的问题：消息重复消费（默认情况下，微服务分属不同的组）
+    - 如果一个订单同时被两个服务获取到，那么就会造成数据错误
+    - 简单来说，8802与8803分属于不同的组，二者处于不同的队列中
+    - 不同组是可以全面消费的（重复消费），而同一组内会发生竞争关系，只有其中一个可以消费
+- 自定义分组
+    - 修改yml：添加group: 自定义组名
+
+###### 7、持久化
+
+- 假设8802没有分组属性，8803有组属性，两台消费者此时都关闭之后，生产者还在发送消息，重新启动两台消费者，8802会丢失消息，而8803重启之后会自动将消息重新消费
+- 总结：一直监听队列中的消息，不能脱离绑定，否则消息丢失。
+
+
+
+##### 十四、SpringCloud Sleuth分布式请求链路跟踪
+
+###### 1、概述
+
+-  存在的问题：在微服务框架中，一个由客户端发起的请求在后端系统中会经过多个不同的的服务节点调用来协同产生最后的请求结果，每一个前段请求都会形成一条复杂的分布式服务调用链路，链路中的任何一环出现高延时或错误都会引起整个请求最后的失败。
+- Sleuth+zipkin可以提供链路追踪并监控调用链路
+    - Sleuth来负责收集整理
+    - zipkin来负责展现收集的数据
+
+###### 2、搭建链路监控
+
+- zipkin：
+
+    - 运行zipkin监控后台：java -jar 
+
+    - 打开zipkin前台：`ip:9411/zipkin`
+
+    - 一条链路通过TranceId唯一标识，Span标识发起的请求信息（一个span就是一次请求信息），各Span通过parentId关联起来，可以将parentId理解为Span的前驱节点
+
+- 案例：
+    - 服务提供者9001：
+        - 添加pom：`spring-cloud-starter-zipkin`，其中包含了sleuth和zipkin
+        - 修改yml：注册到zipkin，sleuth配置采样率
+    - 服务消费者9000：
+        - 添加pom：`spring-cloud-starter-zipkin`，其中包含了sleuth和zipkin
+        - 修改yml：注册到zipkin，sleuth配置采样率
+    - 可以在前台查看链路调用
+
+
+
+##### 十五、SpringCloud Alibaba
+
+- 功能：
+    - 服务限流降级
+    - 服务注册与发现
+    - 分布式配置管理
+    - 消息驱动能力
+    - 阿里云对象存储
+    - 分布式任务调度
+
+
+
+##### 十六、SpringCloud Alibaba Nacos服务注册和配置中心
+
+###### 1、概述
+
+- 注册中心 + 配置中心 = Eureka + Config + Bus
+
+###### 2、安装Nacos
+
+- win版：直接运行bin目录下的startup.cmd，服务端界面在8848端口
+
+###### 3、Nacos作为服务注册中心
+
+- 新建module：cloudalibaba-provider-payment9001
+    - 父pom：添加alibaba依赖，锁定版本`spring-cloud-alibaba-dependencies`
+    - 本pom：添加nacos：`spring-cloud-starter-alibaba-nacos-discovery`
+    - 修改yaml：将服务注册到Nacos、暴露监控端点
+    - 主启动类：添加`@EnableDiscoveryClient`注解
+- 新建module：cloudalibaba-provider-payment9002
+    - 同上，用来演示负载均衡

@@ -21,6 +21,12 @@
     <module>cloud-gateway-gateway9527</module>
     <module>cloud-config-center-3344</module>
     <module>cloud-config-client-3355</module>
+    <module>cloud-config-client-3366</module>
+    <module>cloud-stream-rabbitmq-provider8801</module>
+    <module>cloud-stream-rabbitmq-consumer8802</module>
+    <module>cloud-stream-rabbitmq-consumer8803</module>
+    <module>cloudalibaba-provider-payment9001</module>
+    <module>cloudalibaba-provider-payment9002</module>
   </modules>
   <!--pom总的父工程-->
   <packaging>pom</packaging>
@@ -41,6 +47,11 @@
   <!--子模块继承之后，提供作用：锁定版本+子module不用写groupId和version-->
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>com.alibaba.cloud</groupId>
+        <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+        <version>2.1.0.RELEASE</version>
+      </dependency>
       <!--spring boot 2.2.2-->
       <dependency>
         <groupId>org.springframework.boot</groupId>

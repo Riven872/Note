@@ -15,8 +15,20 @@ spring:
           password: #
           skip-ssl-validation: true
       label: note #读取分支
+  rabbitmq:
+    host: 192.168.31.100
+    port: 5672
+    username: root
+    password: 123
 
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:7001/eureka
+
+#暴露bus刷新配置的端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: 'bus-refresh'
