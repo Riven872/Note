@@ -781,10 +781,174 @@
 
 ###### 3、Nacos作为服务注册中心
 
-- 新建module：cloudalibaba-provider-payment9001
+- 新建生产者module：cloudalibaba-provider-payment9001
     - 父pom：添加alibaba依赖，锁定版本`spring-cloud-alibaba-dependencies`
     - 本pom：添加nacos：`spring-cloud-starter-alibaba-nacos-discovery`
     - 修改yaml：将服务注册到Nacos、暴露监控端点
     - 主启动类：添加`@EnableDiscoveryClient`注解
-- 新建module：cloudalibaba-provider-payment9002
+- 新建生产者module：cloudalibaba-provider-payment9002
     - 同上，用来演示负载均衡
+- 新建消费者module：cloudalibaba-consumer-nacos-order83
+    - 添加pom：nacos、自定义api通用包
+    - 修改yml：将服务注册到nacos、添加消费者将要去访问的微服务名称（以后就可以配置指定，而不用在controller中指定了）
+    - 其中nacos中集成了ribbon，因此自带负载均衡和restTemplate调用
+    - 主启动类：添加`@EnableDiscoveryClient`注解
+    - config配置类：自定义RestTemplate（因为集成了ribbon）并添加注解`@LoadBalanced`
+- Nacos支持AP和CP模式的切换
+    - C是所有节点在同一时间看到的数据是一致的
+        - 需要在服务级别编辑或存储配置信息，必须选择CP模式
+        - CP模式下支持注册持久化实例
+        - 在该模式下注册实例之前必须先注册服务，如果服务不存在则返回错误
+    - A是所有的请求都会收到响应
+        - 不需要在服务级别编辑或存储配置信息且服务实例通过nacos-client注册，并能保持心跳上报，可以选择AP模式
+        - AP模式下只支持注册临时实例
+    - 切换模式命令：`curl -X PUT '$NACOS_SERVER:8848/nacos/v1/ns/operator/switches?entry=serverMode&value=CP'`
+
+###### 4、Nacos作为配置中心
+
+- 基础配置
+
+    - 新建module：cloudalibaba-config-nacos-client3377
+        - 添加pom：nacos注册发现、nacos配置中心
+        - 修改yml：
+            - 有两个.yml，是因为Nacos同springcloud-config一样，在项目初始化时，要保证先从配置中心进行配置拉取，拉取配置之后，才能保证项目的正常启动。
+            - springboot中配置文件的加载是存在优先级顺序的，bootstrap优先级高于application
+            - bootstrap中配置端口、注册发现、配置中心地址等
+            - application中配置`spring.profile.active`，表示当前是什么环境，对应什么环境的配置文件
+        - 主启动类：添加`@EnableDiscoveryClient`注解
+        - 业务类：添加`@RefreshScope`注解，支持Nacos的动态刷新功能
+
+    - Nacos中的匹配规则
+        - Nacos中的dataid的组成格式及与SpringBoot配置文件中的匹配规则
+            - dataid的完整格式为：`${prefix}-${spring.profile.active}.${file-extension}`
+                - `prefix`默认为`spring.application.name`的值，也可以通过配置项`spring.cloud.nacos.config.prefix`来配置
+                - `spring.profile.active`即为当前环境对应的`profile`，如果`spring.profile.active`为空时，对应的连接符`-`也将不存在
+                - `file-extension`为配置内容的数据格式，可以通过配置项`spring.cloud.nacos.config.file-extesion`来配置，目前只支持`properties`和`yaml`
+                - 通过SpringCloud原生注解`@RefreshScope`实现配置自动更新
+                - 因此可以得出，需要配置的文件名为：`nacos-config-client-dev.yaml`
+
+- 分类配置
+    - 三级：Namespace-Group-Service，namespace可以用于区分部署环境，Group和DataID逻辑上区分两个目标对象
+    - Namespace默认是public，NameSpace主要用来实现隔离
+    - Group默认是DEFAULT_GROUP，Group可以把不同的微服务划分到同一个分组里面去
+    - Service就是微服务，一个Service可以包含多个Cluster（集群），Nacos默认Cluster是DEFAULT，Cluster是对指定微服务的一个虚拟划分。
+    - dataid配置（默认命名空间、默认分组下）
+        - 通过`spring.profile.active`属性进行多环境（dev、poc、prd等）下配置文件的读取
+    - Group分组配置（dataid相同，但Group不同）
+        - 在bootstrap中的`config`下，添加`group`分组，将nacos中指定的分组名配置进去
+        - 在application中，修改`spring.profile.active`指定要获取的配置文件名称
+        - 二者配合下，会去找对应分组下的对应配置文件
+    - Namespace命名空间配置
+        - 在bootstrap中的`config`下，添加`namespace`命名空间，将nacos中生成的id配置进去
+        - 在application中，修改`spring.profile.active`指定要获取的配置文件名称
+        - 二者配合下，会去找对应命名空间下对应分组下的对应配置文件
+
+###### 5、Nacos集群和持久化配置
+
+- Nacos默认使用自带的嵌入式数据库实现数据的存储（持久化），因此如果启动多个默认配置下的Nacos节点，会存在数据存储一致性的问题，因此Nacos采用了集中式存储的方式来支持集群化部署，如mysql
+
+- 1个Nginx、3个Nacos、1个mysql（做集中式存储，而不用自带的嵌入式数据库）
+
+    - 将nacos自带数据库内的数据转移到mysql中，即在nacos文件夹中，自动生成了`nacos-mysql.sql`脚本，直接放入mysql执行即可
+
+    - 切换数据库，变成连接外部的mysql数据库，在`nacos/conf`下，修改`application.properties`
+
+        ```pro
+        spring.datasource.platform=mysql
+        
+        db.num=1
+        db.url.0=jdbc:mysql://127.0.0.1:3306/nacos_config(数据库名)?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true
+        db.user=root
+        db.password=123
+        ```
+
+    - 梳理出3台nacos集群不同服务器的端口号，在`nacos/conf`下，修改`cluster.conf`
+
+        ```properties
+        192.168.63.100:3333
+        192.168.63.100:4444
+        192.168.63.100:5555
+        #表明这三个集群节点是一组的
+        ```
+
+    - 在`nacos/bin/`，下编辑Nacos的启动脚本`startup.sh`，使它能够接受不同的启动端口，否则直接运行`startup.sh`时，并不知道是哪个Nacos实例，更改完毕后，以后启动时增加端口号，来表示是哪个端口的实例：`./startup.sh -p 端口号`
+
+        ```shell	
+        #增加参数 :p
+        #在nohup中，增加 -DServer.port=${PORT}
+        while getopts ":m:f:s:p" opt
+        do
+        	case $opt in
+        	m)
+        		MODE=$OPTARG;;
+            f)
+            	FUNCTION MODE=$OPTARG;;
+            s)
+            	SERVER=$OPTARG
+          	p)
+          		PORT=$OPTARG;;
+          	?)
+          		echo "Unknown parameter"
+          		exit 1;;
+          		
+         nohup $JAVA -DServer.port=${PORT} ${JAVA_OPT} nacos.nacos>>
+        ```
+
+    - 修改Nginx中的`nginx.conf`
+
+        ```config
+        upstream cluster{
+        	#因为是linux中配置，因此可以直接写127.0.0.1
+        	server 127.0.0.1:3333;
+        	server 127.0.0.1:4444;
+        	server 127.0.0.1:5555;
+        }
+        server{
+        	listen	1111; #从1111端口转发请求
+        	server_name	localhost;
+        }
+        location / {
+        	proxy_pass http://cluster; #代理转发
+        }
+        ```
+
+    - 修改微服务的yaml文件，将注册Nacos的地址改成Linux的
+
+        ```yaml
+        spring:
+        	cloud:
+        		nacos:
+        			discovery:
+        				server-addr: 192.168.63.100:1111	#换成nginx的1111端口，做集群
+        ```
+
+    - 架构图
+
+        ![Nacos1](img_md/Nacos1.png)
+
+
+
+##### 十七、SpringCloud Alibaba Sentinel实现熔断与限流
+
+###### 1、概述
+
+- 轻量级的流量控制、熔断降级的Java库
+- 用来解决服务使用中服务雪崩、服务降级、服务熔断和服务限流
+
+###### 2、安装Sentinel控制台
+
+- 由前台后台两部分组成
+    - 核心库（Java客户端）：不依赖任何框架/库，能够运行于所有的Java运行时环境（是一个jar包，可以直接运行）
+    - 控制台（Dashboard）：打包后可直接运行
+
+###### 3、初始化演示工程
+
+- 启动Nacos（本地8848）
+- 建Module：cloudalibaba-sentinel-service8401
+    - pom：添加Nacos、Sentinel依赖
+    - yml：添加Sentinel配置，使Sentinel监控8401微服务
+    - 主启动类：添加`@EnableDiscoveryClient`注解
+- 启动Sentinel8080
+- 启动微服务8401
+- 注意：因为SentinelDash控制台有懒加载机制，执行一次微服务接口的请求访问即可
+
