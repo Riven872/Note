@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class FlowLimitController {
     @GetMapping("/testA")
-    public String testA()
-    {
+    public String testA() throws InterruptedException {
+        //Thread.sleep(3000);
         return "------testA";
     }
 
