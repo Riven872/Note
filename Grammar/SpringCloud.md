@@ -1044,3 +1044,57 @@
     - 平均RT：当单台机器上所有入口流量的平均RT达到阈值就触发系统保护，单位毫秒
     - 并发线程数：当单台机器上所有入口流量的并发编程数达到阈值就触发系统保护
     - 入口QPS：当单台机器上所有入口流量的QPS达到阈值就触发系统保护
+
+###### 8、@SentinelResource注解
+
+- 既可以通过`@GetMapping`注解中的**路径url地址**限流，也可以通过`@SentinelResource`注解中value的值即**资源名**限流
+
+- 目前面临的问题
+
+    - 系统默认的异常Blocked by Sentinel(flow limiting)，没有体现业务要求
+    - 自定义的fallback方法会跟业务代码耦合在一起
+    - 每个业务方法都添加一个fallback方法，代码膨胀
+    - 全局统一的处理方法没有体现
+
+- 客户自定义限流处理逻辑
+
+    - 必须用`@SentinelResource`注解中value的值即**资源名**才可以自定义限流处理
+
+        ```java
+        @SentinelResource(value = "customerBlockHandler",	//声明当前的资源名
+                    blockHandlerClass = CustomerBlockHandler.class,	//声明是哪个类进行fallback处理
+                    blockHandler = "handlerException2")	//声明触发限流时，该类中的哪个方法为fallback方法
+        ```
+
+    - Sentinel限流的底层
+
+        ```java
+        try{
+        	//todo 自己的业务代码
+        } catch(BlockException e) {
+            //触发了限流规则，则捕获异常
+            e.printStackTrace();
+        }
+        ```
+
+###### 9、服务熔断功能
+
+- Sentinel整合Ribbon+OpenFeign+fallback
+- Ribbon系列
+    - 建module：新建服务提供者：cloudalibaba-provider-payment9003和9004，做负载均衡
+        - 改pom：注册进nacos
+    - 建module：新建服务消费者：cloudalibaba-consumer-nacos-order84
+        - 改pom：注册进nacos（nacos中集成了Ribbon，因此不用单独导包）、注册进Sentinel限流
+        - 业务类：配置自定义的Ribbon负载均衡配置类（即自定义RestTemplate）
+    - 服务熔断无配置：
+        - 会直接抛Java的运行时异常页面，不友好
+    - 服务熔断只配置**fallback**：
+        - fallback只负责管理运行时异常，只是Java代码出异常时的兜底方法
+    - 服务熔断只配置**blockHandler**：
+        - blockHandler只负责配置触发了限流的异常，Java代码出异常时不会去处理
+    - 服务熔断配置**fallback**和**blockHandler**
+        - 流控会触发blockHandler而不是触发fallback
+        - 因为触发了blockHandler就相当于挡在了调用方法的外面，不会进入执行方法，因此也就不会出现代码异常，就不会触发fallback
+    - 主动忽略异常：
+        - 如果在注解中，指定异常`exceptionsToIgnore = {IllegalArgumentException.**class**}`，则假如再报`IllegalArgumentException`异常时，不会有fallback方法兜底，没有降级效果
+- Feign系列
