@@ -1097,4 +1097,107 @@
         - 因为触发了blockHandler就相当于挡在了调用方法的外面，不会进入执行方法，因此也就不会出现代码异常，就不会触发fallback
     - 主动忽略异常：
         - 如果在注解中，指定异常`exceptionsToIgnore = {IllegalArgumentException.**class**}`，则假如再报`IllegalArgumentException`异常时，不会有fallback方法兜底，没有降级效果
-- Feign系列
+- Feign系列（讲的一般）
+    - 修改84消费者：调用提供者9003，并使用Feign组件（Feign组件一般是消费侧）
+        - 改pom：添加OpenFeign
+        - 改yml：激活Sentinel对Feign的支持
+        - 主启动类：使用`@EnableFeignClients`激活Feign
+        - 业务类：Feign就是接口加注解，而不是用restTemplate
+    - 使用`@EnableFeignClients`中，指定的fallback方法进行降级
+
+###### 10、规则持久化
+
+- 重启Sentinel之后，配置的限流规则会消息，因此在prd环境需要将规则持久化
+
+- 持久化可以保存到持久化的媒介中，因此可以用数据库、Redis等，官方建议采用Nacos
+
+- 重启微服务时，先前在Sentinel中配置的对应该微服务的限流规则就会消失
+
+- 修改8401，使配置在8401上的限流规则持久化：
+
+    - 改pom：添加Sentinel规则持久化到Nacos的依赖：`sentinel-datasource-nacos`
+
+    - 改yml：添加Nacos数据源的信息
+
+        ```yaml
+        datasource:
+                ds1:
+                  nacos:
+                    server-addr: localhost:8848
+                    dataId: cloudalibaba-sentinel-service
+                    groupId: DEFAULT_GROUP
+                    data-type: json
+                    rule-type: flow
+        ```
+
+- 在Nacos上新建配置：
+
+    - Data ID：对应配置在yml中dataId的数据
+
+    - 分组：默认是DEFAULT_GROUP，对应配置在yml中groupId的数据
+
+    - 配置格式：对应配置在yml中data-type的数据
+
+    - 配置内容：
+
+        ```json
+        [
+            {
+                "resource": "/rateLimit/byUrl",	//资源名称
+                "limitApp": "default",	//来源应用
+                "grade": 1,	//阈值类型：0表示线程数，1表示QPS
+                "count": 1,	//单机阈值
+                "strategy": 0,	//流控模式，0表示直接，1表示关联，2表示链路
+                "controlBehavior": 0,	//流控效果，0表示快速失败，1表示WarmUp，2表示排队等待
+                "clusterMode": false	//是否集群
+            }
+        ]
+        ```
+
+    - 总结：限流规则在Nacos中配置，会自动更新到Sentinel中
+
+
+
+##### 十八、SpringCloud Alibaba Seata处理分布式事务
+
+###### 1、分布式事务问题
+
+- 单体应用被拆分成微服务应用，原来的三个模块被拆分成三个独立的应用，分别使用三个独立的数据源，业务操作需要调用三个服务来完成。此时每个服务内部的数据一致性由本地事务来保证，但是全局的数据一致性问题没法保证。
+- 一次业务操作需要跨多个数据源或需要跨多个系统进行远程调用，就会产生分布式事务问题
+
+###### 2、Seata概述
+
+- 分布式事务处理过程的1+3模型（1id+3组件）
+    - Transaction ID（XID）：全局的唯一事务ID
+    - Transaction Coordinator（TC）：事务协调器，维护全局事务的运行状态，负责协调并驱动去全局事务的提交和回滚
+    - Transaction Manager（TM）：控制全局事务的边界，负责开启一个全局事务，并最终发起全局提交和全局回滚的协议
+    - Resource Manager（RM）：控制分支事务，负责分支注册、状态汇报，并接收事务协调器的指令，驱动分支（本地）事务的提交和回滚
+- 分布式事务处理过程
+    - TM 向 TC 申请开启一个全局事务，全局事务创建成功并生成一个全局唯一的 XID；
+    - XID 在微服务调用链路的上下文中传播；
+    - RM 向 TC 注册分支事务，将其纳入 XID 对应全局事务的管辖；
+    - TM 向 TC 发起针对 XID 的全局提交或回滚决议；
+    - TC 调度 XID 下管辖的全部分支事务完成提交或回滚请求。
+
+![seata1](img_md/seata1.png)
+
+###### 3、Seata安装
+
+- 修改file.conf文件
+    - 自定义事务组的名称：修改service模块，将值改成自定义的名字`vgroup_mapping.my_test_tx_group = "foo_tx_group"`
+    - 修改事务日志存储模式为db并指定数据库连接信息：
+        - 修改store模块，将mode改成数据库模式`mode = "db"`
+        - 修改store下的db模块，指定数据库连接信息（url、username、pwd等）
+- 使用自带的.sql脚本文件建表
+- 修改registry.conf文件：将文件注册模式改成nacos，`type = "nacos"`，并修改Nacos的地址，`serverAddr = "localhost:8848"`
+
+###### 4、订单、库存、账户业务数据库准备
+
+- 分布式事务业务说明：
+    - 创建三个服务，一个订单服务，一个库存服务，一个账户服务
+        - 当用户下单时，会在订单服务中创建一个订单，然后通过远程调用库存服务来扣减下单商品的库存，
+        - 再通过远程调用账户服务来扣减用户账户里面的余额，
+        - 最后在订单服务中修改订单状态为已完成。
+    - 该操作跨越三个数据库，有两次远程调用，会出现分布式事务问题。
+- 创建三个数据库（存储订单的、存储库存的、存储账户信息的），每个库中建立对应的业务表
+    - 使用Seata自带的db_undo_log.sql.sql给每个库建立各自的回滚日志表
