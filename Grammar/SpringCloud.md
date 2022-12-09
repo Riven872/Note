@@ -1184,7 +1184,7 @@
 ###### 3、Seata安装
 
 - 修改file.conf文件
-    - 自定义事务组的名称：修改service模块，将值改成自定义的名字`vgroup_mapping.my_test_tx_group = "foo_tx_group"`
+    - 自定义事务组的名称：修改service模块，将值改成自定义的名字`vgroup_mapping.foo_tx_group = "default"`
     - 修改事务日志存储模式为db并指定数据库连接信息：
         - 修改store模块，将mode改成数据库模式`mode = "db"`
         - 修改store下的db模块，指定数据库连接信息（url、username、pwd等）
@@ -1200,4 +1200,34 @@
         - 最后在订单服务中修改订单状态为已完成。
     - 该操作跨越三个数据库，有两次远程调用，会出现分布式事务问题。
 - 创建三个数据库（存储订单的、存储库存的、存储账户信息的），每个库中建立对应的业务表
-    - 使用Seata自带的db_undo_log.sql.sql给每个库建立各自的回滚日志表
+    - 使用Seata自带的db_undo_log.sql给每个库建立各自的回滚日志表
+
+###### 5、订单、库存、账户业务微服务准备
+
+- 业务需求：下订单->减库存->扣余额->改（订单）状态
+- 新建订单module：seata-order-service2001
+    - 改pom：服务注册nacos、服务调用OpenFeign、先将springcloudalibaba自带的Seata去掉，然后加入自己版本的
+    - 改yml：
+        - 自定义事务组名称需要与seata-server中自定义的service模块的名字对应，即`vgroup_mapping.foo_tx_group = "default"`
+        - 将seata中的两个conf文件放到类路径下
+    - 业务类：
+        - dao接口及对应的mapper
+        - service接口及对应的实现类
+            - 在实现类中写业务代码，操作数据库时调用dao
+            - 实现类中实现整个下订单操作，包括自身的dao调用创建订单，远程调用进行扣减库存、扣减金额等，因此远程调用的接口使用OpenFeign做映射
+    - config配置：
+        - 配置Mybatis的Mapper扫描位置
+        - 使用Seata对数据源进行代理
+    - 主启动类：
+        - 启用Nacos、启用OpenFeign
+        - `@SpringBootApplication(exclude = DataSourceAutoConfiguration.class)//取消数据源的自动创建`，因为自己配置使用Seata对数据源进行代理
+- 新建库存module：seata-storage-service2002
+- 新建账户module：seata-account-service2003
+
+###### 6、@GlobalTransactional注解
+
+- 在没有加改注解之前，可能出现的异常：
+    - 某个业务执行时间过长，超时，会发生整体的数据不一致性
+    - OpenFeign有重试机制，可能会造成多次扣减
+- 添加注解：
+    - 在业务入口添加注解`@GlobalTransactional(name = "foo-create-order", rollbackFor = Exception.class)`，name是自定义的唯一的标识名称，`rollbackFor = Exception.class`是指只要发生异常，就会
