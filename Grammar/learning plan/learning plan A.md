@@ -346,6 +346,24 @@
 
 > 参考文章：https://blog.csdn.net/qq_19636353/article/details/126759522
 
+8、RPC 远程调用作用：像调用本地方法一样去调用远程方法
+
+​	1、与 HTTP 调用的区别：
+
+​		1、对开发者更透明，减少了很多的沟通成本（即 RPC 的作用）
+
+​		2、RPC 向远程服务器发送请求时，未必使用 HTTP 协议，比如还可以使用 TCP / IP，性能更高（内部服务更适用）
+
+​		3、基于 HTTP 的远程调用（HTTPClient、RestTemplate、Feign）
+
+​	2、RPC 调用模型
+
+​		1、方法提供者（provider）：向注册中心注册信息
+
+​		2、注册中心（zookeeper、nacos）：存储方法提供者的调用信息
+
+​		3、方法调用方（provider）：向注册中心获取方法提供者的信息，但实际仍然是直接调用方法提供者
+
 
 
 #### RabbitMQ
