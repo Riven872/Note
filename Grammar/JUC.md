@@ -144,3 +144,117 @@
 
 - 同上
 - 创建线程安全的集合 bar：HashMap\<String, Object> bar = new ConcurrentHashMap\<>();
+
+
+
+### 六、多线程锁
+
+- synchronized 实现同步的基础：Java 中的没一个对象都可以作为锁，具体表现为：
+    - 对于普通同步方法，锁是当前实例的对象（this）
+    - 对于静态同步方法， 锁是当前类的对象（Class）
+    - 对于同步方法块，锁是括号中配置的对象
+- synchronized 作用于不同方法时，锁的类型也不同：如果没取到静态方法的锁，但是可以继续去取普通方法的锁
+
+#### 1、非公平锁
+
+- 创建可重入锁时，使用无参构造或传入 false，创建出来的对象就是非公平锁
+- 多个线程共同执行一个任务时，非公平锁会导致只有第一个取到锁的线程完成整个任务
+- 会导致线程饥饿，但效率较高
+
+#### 2、公平锁
+
+- 创建可重入锁时，使用有参构造传入 true，创建出来的对象就是公平锁
+- 公平锁会让线程共同竞争，获取到锁的线程即可执行任务，不存在线程独占的情况
+- 多线程工作，但是效率较低
+
+#### 3、可重入锁
+
+- 同一线程在获取到锁之后，可以在第一把锁没有释放的前提下，再获取一次锁
+
+#### 4、死锁
+
+##### 4.1、概述
+
+- 两个或以上的线程在执行过程中，因为争夺资源而造成互相等待的过程称为死锁，如果没有外力干涉将无法执行下去
+
+##### 4.2、产生死锁的原因
+
+- 系统资源不足
+- 进程运行推进顺序不合理
+- 资源分配不当
+
+##### 4.3、验证是否发生了死锁
+
+- 使用 bin 包中的 jps 来定位**进程**（类似 Linux 中的 ps -ef），命令为 jps -l
+- 使用 jvm 自带的 jstach 用来追踪堆栈，命令为 jstack 进程号
+- 如果有死锁发生，控制台中输出死锁发生的堆栈信息
+
+
+
+### 七、Callable 接口
+
+#### 1、概述
+
+- 创建线程的方式：
+    - 继承 Thread 类
+    - 实现 Runnable 接口
+    - 实现 Callable 接口
+    - 使用线程池
+- 使用 Thread 或 Runnable 创建的线程，在线程终止时（即 run 方法执行完毕时）， 无法使线程返回结果，因此可以使用 Callable 接口创建线程，而且在无法计算结果或有异常时，可以抛出，实现方法为 call()，而非 run()
+
+#### 2、使用 Callable 创建线程
+
+- Thread 构造函数无法直接传入实现了 Callable 接口的类，但可以传入实现了 Runnable 接口的实现类，即 FutureTask，而 FutureTask 的构造函数中又可以传入 Callable，因此使用 FutureTask 做中介
+- 跟 Runnable 接口相同，只有一个 call 方法，因此可以使用 lambda 表达式直接创建 FutureTask
+- FutureTask 的 get 方法用来取得 Callable 的返回值，但即使调用多次也不会使线程执行多次。如果 get 方法还没有取到返回值时，会在此进行**阻塞**并等待返回值
+
+
+
+### 八、JUC的辅助类
+
+#### 1、减少计数器 CountDownLatch
+
+- 给 CountDownLatch 设置一个初始值，当有线程调用 countDown 方法时，会将计数器的值减一（调用 countDown 方法的线程不会被阻塞）
+
+- 使用 CountDownLatch 中的 await 方法，等待计数器的值不大于 0（除非线程被中断或超出了指定的时间），然后才执行 await 之后的语句
+
+- 当计数器的值大于0时，阻塞运行到 await 的线程，当归零时，释放所有等待的线程
+
+- ```java
+    // 创建 CountDownLatch 并设置计数器的初始值
+    CountDownLatch countDownLatch = new CountDownLatch(5);
+    // 计数器减一
+    countDownLatch.countDown();
+    // 计数器不为 0 时，阻塞线程执行 await 以下的语句
+    countDownLatch.await();
+    ```
+
+#### 2、循环栅栏 CyclicBarrier
+
+- 给 CyclicBarrier 设置一个初始值 N，和一个回调方法（实现了 Runnable 接口的实现类），在每个线程执行过程中都执行一次 await 方法，执行完 N 次时，最后一次执行的线程去执行回调方法
+
+- 如果一个线程多次 await，并不会触发回调方法
+
+- 在此过程中只会阻塞要 await 的线程，不会阻塞其他线程，因此 await 是根据阻塞的线程来计算的
+
+- ```java
+    // 创建 CyclicBarrier，规定 await 次数和回调方法
+    CyclicBarrier cyclicBarrier  = new CyclicBarrier(7, () -> {
+        System.out.println(Thread.currentThread().getName() + " ok");
+    });
+    // 阻塞线程
+    cyclicBarrier.await();
+    ```
+
+#### 3、信号量 Semaphore 
+
+- 给信号量一个初始值 N，相当于给某个临界资源分配了 N 把钥匙，某线程要访问该临界资源时，需要先 acquire 获取钥匙，如果钥匙不足，则在原地阻塞，直到有线程进行 release 释放信号量时，才可以去继续尝试获取钥匙
+
+- ```java
+    // 创建 Semaphore 并设置信号量的初始值
+    Semaphore semaphore = new Semaphore(6);
+    // 在某一线程中尝试获得信号量
+    semaphore.acquire();
+    // 在某一个线程中释放信号量
+    semaphore.release();
+    ```
