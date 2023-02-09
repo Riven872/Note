@@ -48,6 +48,14 @@
 
 ​		8、**Bean 销毁**，容器关闭时，上下文销毁，如果实现了 DisposableBean 接口，则执行对应的 destroy 方法，如果自定义了 destory-method，则执行对应的自定义销毁方法
 
+3、@Autowired 和 @Resource注解的区别
+
+​	1、@Autowired 是 Spring 提供的注解，@Resource 是 JDK 提供的注解
+
+​	2、@Autowired 是只能按类型注入，@Resource 默认按名称注入，也支持按类型注入
+
+​	3、@Autowired 按类型装配依赖对象，默认情况下它要求依赖对象必须存在，如果允许 null 值，可以设置它 required 属性为 false，如果我们想使用按名称装配，可以结合 @Qualifier 注解一起使用。@Resource 有两个中重要的属性：name 和 type。name 属性指定 byName，如果没有指定 name 属性，当注解标注在字段上，即默认取字段的名称作为bean名称寻找依赖对象，当注解标注在属性的 setter 方法上，即默认取属性名作为 bean 名称寻找依赖对象。需要注意的是，@Resource 如果没有指定 name 属性，并且按照默认的名称仍然找不到依赖对象时， @Resource 注解会回退到按类型装配。但一旦指定了 name 属性，就只能按名称装配了
+
 
 
 #### Mysql数据库
