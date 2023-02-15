@@ -359,7 +359,7 @@
 - long keepAliveTime，线程的存活时间，当有空闲线程时，会在指定时间内销毁，使线程数量恢复至常驻数量
 - TimeUnit unit，时间单位
 - BlockingQueue\<Runnable> workQueue，阻塞队列，用来存放已提交但未执行的任务
-    - ThreadFactory threadFactory，线程工厂，用来创建工厂，默认的线程工厂为 Executors.defaultThreadFactory()
+- ThreadFactory threadFactory，线程工厂，用来创建线程，默认的线程工厂为 Executors.defaultThreadFactory()
 - RejectExecutionHandler handler，拒绝策略，等待的阻塞队列满之后以指定的策略拒绝新提交的任务，默认的拒绝策略为 new ThreadPoolExecutor.AbortPolicy()
 
 #### 6、底层工作流程

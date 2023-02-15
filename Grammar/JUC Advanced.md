@@ -412,7 +412,7 @@
     User foo = new User("name", 12);
     // 将实例化的 User 放入
     atomicReference.set(foo);
-    // 可以使用 Atomic 的API
+    // 可以使用 Atomic 的 API
     atomicReference.compareAndSet("参数1", "参数2");
     atomicReference.get();
     ```
@@ -438,3 +438,131 @@
 
 ### 八、原子操作类
 
+#### 1、基本类型原子类
+
+- 如：AtomicInteger、AtomicBoolean、AtomicLong
+- 常用 API 如：获取当前值并设置新值、获取当前值并自增或自减、获取当前值并加上预期值、如果输入的数值等于预期值，则以原子方式将该值设置为输入值
+
+#### 2、数组类型原子类
+
+- 如：AtomicIntegerArray、AtomicLongArray、AtomicReferenceArray
+- 常用 API 跟上面差不多
+
+#### 3、引用类型原子类:star:
+
+- AtomicReference：包装自定义类，使其能试用 Atomic 类的方法
+- AtomicStampedReference：带版本号，用来解决 ABA 问题，也可以解决**修改过几次**
+- AtomicMarkableReference：原子更新标记位，用来解决**是否修改过**，将状态戳简化为 T / F
+
+#### 4、对象的属性修改原子类
+
+- AtomicIntegerFieldUpdater：原子更新对象中 int 类型字段的值
+
+- AtomicLongFieldUpdater：原子更新对象中 Long 类型字段的值
+
+- AtomicReferenceFieldUpdater：原子更新引用类型字段的值
+
+    - ```java
+        /**
+        AtomicReferenceFieldUpdater 的初始化
+        foo：类名
+        String：需要修改的字段的类型
+        foo.Class：需要修改的类
+        "abcde"：需要修改的字段名
+        */
+        AtomicReferenceFieldUpdater<foo, String> referenceFieldUpdater = AtomicReferenceFieldUpdater.newUpdater(foo.Class, "abcde");
+        ```
+
+- 目的：以一种线程安全的方式操作非线程安全对象内的**某些字段**
+
+- 要求：
+
+    - 更新的对象属性必须使用 public volatile 修饰符
+    - 对象的属性修改类型原子类都是抽象类，所有每次使用都必须使用静态方法 newUpdater() 创建一个更新器，并且需要设置想要更新的类和属性
+
+- 原理：需要传入操作的对象和修改的字段，即用到了反射技术
+
+#### 5、原子操作增强类原理深度解析:star:
+
+- 如：DoubleAccumulater、DoubleAdder、LongAccumulater（提供了自定义的函数操作）、LongAdder（只能用来计算加法，且从零开始）
+- 常用 API ：返回当前值（在没有并发更新 value 时，会返回一个精确值，在高并发情况下，不保证返回精确值）
+- LongAdder 对象在高并发场景下，比 AtomicLong 性能更好（减少了乐观锁的重试次数）
+
+##### 5.1、原理（讲的有丶乱，用的时候再回来补）
+
+- 高并发场景下，LongAdder 性能优于 AtomicLong，吞吐量会更高，但是空间消耗也更高。在正常情况下，两个类有相似的特征
+
+##### 5.2、总结
+
+- AtomicLong：（个人感觉是高一致性，舍弃了高并发）
+    - 原理：CAS + 自旋、inCrementAndGet
+    - 场景：低并发场景下的全局计算，且 AtomicLong 能保证并发情况下计数的准确性，内部通过 CAS 来解决并发安全问题
+    - 缺陷：高并发后性能急剧下降，因为 AtomicLong 的自旋会成为瓶颈（N 个线程 CAS 操作修改线程的值，每次只有一个成功，其他的 N-1 失败，失败后的线程不停的自旋直到成功，这样大量失败自旋的情况下，会使 CPU 出现忙等）
+- LongAdder：（个人感觉是高并发，但是舍弃了高一致性）
+    - 原理：CAS + Base + Cell 数组分散、空间换时间并分散热点数据
+    - 场景：高并发下的全局计算
+    - 缺陷：sum 求和之后还有计算线程修改结果的话，最后结果不够准确
+
+
+
+### 九、线程局部变量 ThreadLocal
+
+#### 1、简介
+
+- ThreadLocal 提供的线程局部变量与正常变量不同，因为每一个线程在访问 ThreadLocal 实例的时候，都有自己**独立**初始化的变量副本，以此将某些行为或状态与线程相关联
+- 每一个线程都有自己专属的本地变量副本
+- 必须回收自定义的 ThreadLocal 变量，尤其是在线程池的场景下，因为线程经常会被复用，如果不清理自定义的 ThreadLocal 变量，可能会影响后续业务逻辑和造成内存泄露等问题
+
+#### 2、源码分析
+
+- Thread 类中包含 ThreadLocal 类，进一步体现了一个线程一个副本
+- ThreadLocalMap 实际上就是一个以 ThreadLocal 实例为 key，任意对象为 value 的 Entry 对象（Entry 对象是一个 k-v 键值对）
+
+#### 3、内存泄露问题:star:
+
+##### 3.1、概述
+
+- 不再会被使用的对象或者变量**占用的内存不能被回收**，就是内存泄露
+- ThreadLocalMap 中的 Entry 对象继承了**弱引用**
+
+##### 3.2、JVM 四种引用模式
+
+- 强引用（默认模式）：对于强引用的对象而言，就算是出现了 OOM 或该对象以后永远不会被用到，JVM 也不会去回收
+- 软引用：对于软引用的对象而言，当系统内存充足时，不会被回收，当系统内存不足时，才会被回收
+- 弱引用：对于弱引用的对象而言，只要 GC 运行，不管 JVM 内存是否够用，都会回收该对象占用的内存
+- 虚引用：如果一个对象仅持有虚引用，那么它就和没有任何引用一样，在任何时候都可能被 CG 回收，因此它不能单独使用也不能通过它访问对象，虚引用必须和**引用队列**联合使用
+
+##### 3.3、为什么使用弱引用:star:
+
+- ThreadLocalMap 是 Thread 类中的一个属性，通过 ThreadLocal 这个工具来实现对 ThreadLocalMap 的控制
+- 当某一线程执行完毕后，Thread 也会被销毁，但此时 ThreadLocalMap 中的 Entry 的 key 还在指向该线程，因此如果这个 key 是强引用，指向的 Thread 即使销毁了也依然会存在不会被 GC，会造成内存泄露，因此使用弱引用，指向的线程结束后，在 GC 时就可以回收掉，大概率解决内存泄露的问题
+- 即 Thread 没了，那么指向该 Thread 的 ThreadLocalMap 也需要被 GC 回收
+
+
+
+### 十、Java 对象内存布局和对象头
+
+#### 1、对象在堆内存中的布局
+
+- 在 HotSpot 虚拟机中，对象在堆内存中的存储布局可以划分为三个部分：对象头、实例数据、对齐填充
+
+##### 1.1、对象头
+
+- 对象标记（8 字节）
+    - 哈希码
+    - GC 标记
+    - GC 次数
+    - 同步锁标记
+    - 偏向锁持有者
+- 类元信息（也叫类型指针，8 字节）
+    - 存储的是指向该对象类元数据的首地址
+    - 即指向方法区的模板 Class 的指针，虚拟机通过这个指针来确定这个对象是哪个类的实例
+
+##### 1.2、实例数据
+
+- 存放类的属性（字段）数据信息，包括父类的属性信息
+- 如果实例化一个对象时，该对象内没有属性，则在堆内存中只包含对象头
+
+##### 1.3、对齐填充
+
+- 虚拟机要求对象其实地址必须是 8 字节的整数倍，填充数据不是必须存在的，仅仅是为了字节对齐这部分内存按 8 字节补充对齐
