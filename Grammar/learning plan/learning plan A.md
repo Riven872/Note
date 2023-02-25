@@ -88,6 +88,10 @@
 
 > 参考文章：https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/database-shard.md
 
+5、SQL 执行计划分析
+
+> 参考文章：https://javaguide.cn/database/mysql/mysql-query-execution-plan.html#possible-keys
+
 
 
 #### Redis
@@ -231,6 +235,41 @@
 ​	3、其中 value 表示操作的缓存 key 是哪一个（实际中 key = value + keyGenerator），而`@Cacheable`和`@CacheEvict`中的 value 一致时，可以表示同名的可缓存操作，一个添加缓存，一个删除缓存。因此 value 只是注解层面的唯一标识
 
 17、实现 KeyGenerator 接口，实现自定义 keyGenerator，其中方法名为 keyGenerator 的调用名
+
+18、Redis 的序列化
+
+​	1、Redis 需要将数据存储到内存中，而内存中存储的是二进制数据，而数据又是以键值对的形式存在。因此，在 Redis 中需要将数据进行序列化（或者叫编码），以便将数据转化为二进制格式存储到内存中，或者将内存中的数据反序列化（或者叫解码）成可读的数据格式返回给应用程序。
+
+​	2、RedisTemplate 自定义序列化，key 用 string 序列化器（new StringRedisSerializer），value 用 Json 序列化器（new GenericJackson2JsonRedisSerializer）
+
+​	3、通过 Json 能够反序列化成功的原因是，在序列化时，多生成了一条属性，存放的是对应 Class 的字节码名称，因此可以正确的转换为对应的对象
+
+```java
+@Configuration
+public class RedisConfig{
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory){
+		// 创建 RedisTemplate 对象
+        RedisTemplate<String, Object> template = new RedisTemplate();
+        // 设置连接工厂
+        template.setConnectionFactory(connectionFactory);
+        // 设置 key 和 HashKey 的序列化方式为 String
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+        // 设置 value 和 HashValue 的序列化方式为 Json
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+        // 返回
+        return template;
+    }
+}
+```
+
+19、redis 中有一批 key 瞬间过期，为什么其它 key 的读写效率会降低
+
+​	1、在 Redis 中，所有的读写操作都是单线程的，因此当 Redis 执行一些比较耗时的操作时，如持久化操作、过期键删除等，它会阻塞所有其他的操作，直到这些操作完成为止。当一批 key 瞬间过期时，Redis 需要花费更多的时间去删除这些过期的键，这会导致 Redis 阻塞更长的时间，从而导致其它 key 的读写效率降低。
+
+​	2、此外，当 Redis 的内存使用达到一定阈值时，它会触发内存回收机制，该机制会删除一些过期键和一些不经常使用的键以腾出更多的空间。如果一批 key 瞬间过期，这可能会导致 Redis 触发内存回收机制，从而降低其它 key 的读写效率。
 
 
 
@@ -419,3 +458,25 @@
 ​		7、etc.：还可以自己加盐值之类的固定值等，根据业务场景来
 
 ​	3、客户端填写以上参数，并根据规则生成 sign 签名（其中 secretKey只用来生成签名，不会在前端中传参），然后将数据传递至客户端。服务端通过 accessKey 查找出对应的 secretKey，并按照相应的参数和规则生成签名，与客户端发送来的进行对比，这样就无须解密签名拿到之中的 secretKey（这样就可以用加密性更强的单向加密），只要两者加密后的签名一致，则校验通过（也说明虽然没有向服务器传输 secretKey，但二者是一致的）
+
+
+
+#### RPC 框架
+
+1、dubbo 超时内部是怎么实现的
+
+​	1、Dubbo 中的超时是通过 Netty 的超时机制实现的，具体来说是通过设置 Netty 的 read timeout 和 write timeout 实现的。在调用方发起调用请求之后，如果在规定的时间内没有接收到响应，那么就会触发超时机制，抛出超时异常。
+
+2、如果调用方已经超时产生异常了，提供者执行完毕后还会向调用方写返回值吗？
+
+​	1、如果调用方已经超时产生异常了，提供者执行完毕后不会向调用方写返回值。这是因为在 Dubbo 中，当调用方发生超时异常时， Dubbo 会立即断开连接，不再等待提供者的响应结果。因此，即使提供者执行完毕并产生了返回值，也无法传回给调用方。
+
+​	2、需要注意的是，在 Dubbo 中，当出现超时异常时，Dubbo 会立即触发重试机制，即重新发起调用请求。因此，如果在提供者执行完毕之前，调用方已经发起了重试请求，那么提供者仍然可以返回正确的响应结果。
+
+
+
+#### 设计模式
+
+
+
+#### 并发编程
