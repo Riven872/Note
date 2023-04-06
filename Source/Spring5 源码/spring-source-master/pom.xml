@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.automannn.spring</groupId>
+    <artifactId>springSource</artifactId>
+    <packaging>pom</packaging>
+    <version>0.0.1</version>
+
+    <properties>
+        <springSource.cglib>3.3.0</springSource.cglib>
+        <springSource.blockhound>1.0.4.RELEASE</springSource.blockhound>
+        <springSource.jopt-simple>5.0.4</springSource.jopt-simple>
+        <springSource.reactor-core>3.4.0-RC1</springSource.reactor-core>
+        <springSource.javax.annotation-api>1.3.1</springSource.javax.annotation-api>
+        <springSource.google-code-findbugs>3.0.1</springSource.google-code-findbugs>
+        <springSource.snake-yaml>1.27</springSource.snake-yaml>
+        <springSource.jamon>2.82</springSource.jamon>
+        <springSource.objenesis>3.1</springSource.objenesis>
+        <springSource.money-api>1.1</springSource.money-api>
+        <springSource.bsh>2.0b4</springSource.bsh>
+        <springSource.groovy>3.0.1</springSource.groovy>
+        <springSource.kotlin-reflect>1.4.10</springSource.kotlin-reflect>
+        <springSource.kotlin-stdlib>1.4.10</springSource.kotlin-stdlib>
+        <springSource.uow>6.0.2.17</springSource.uow>
+        <springSource.derby>10.9.1.0</springSource.derby>
+        <springSource.derby-client>10.9.1.0</springSource.derby-client>
+        <springSource.servlet-api>4.0.1</springSource.servlet-api>
+        <springSource.reactor-netty-http>1.0.0-RC1</springSource.reactor-netty-http>
+        <springSource.jetty-server>9.4.12.RC2</springSource.jetty-server>
+        <springSource.jetty-servlet>9.4.12.RC2</springSource.jetty-servlet>
+        <springSource.jetty-client>9.4.12.RC2</springSource.jetty-client>
+        <springSource.websocket-client>9.4.12.RC2</springSource.websocket-client>
+        <springSource.websocket-server>9.4.12.RC2</springSource.websocket-server>
+        <springSource.jackson-base>2.9.8</springSource.jackson-base>
+        <springSource.rsocket-core>1.1.0-M2</springSource.rsocket-core>
+        <springSource.rsocket-transport-netty>1.1.0-M2</springSource.rsocket-transport-netty>
+    </properties>
+
+    <modules>
+        <module>springAop</module>
+<!--        <module>springAspects</module>-->
+        <module>springBeans</module>
+        <module>springContext</module>
+<!--        <module>springContextIndexer</module>-->
+        <module>springContextSupport</module>
+        <module>springCore</module>
+        <module>springExpression</module>
+        <module>springInstrument</module>
+        <module>springJcl</module>
+        <module>springJdbc</module>
+        <module>springJms</module>
+        <module>springMessaging</module>
+        <module>springOrm</module>
+        <module>springOxm</module>
+<!--        <module>springR2dbc</module>-->
+<!--        <module>springTest</module>-->
+        <module>springTx</module>
+        <module>springWeb</module>
+        <module>springWebflux</module>
+        <module>springWebmvc</module>
+        <module>springWebsocket</module>
+        <module>practice</module>
+        <module>mytest</module>
+    </modules>
+
+    <repositories>
+        <repository>
+            <id>reactor</id>
+            <name>reactor</name>
+            <!--  获取  reactor的开发版本          -->
+            <url>https://repo.spring.io/milestone</url>
+        </repository>
+        <repository>
+            <id>uow</id>
+            <name>uow</name>
+            <url>https://repo.spring.io/libs-spring-framework-build</url>
+        </repository>
+
+    </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>rdc-releases</id>
+            <url>https://packages.aliyun.com/maven/repository/2211645-release-a4sdkI/</url>
+        </repository>
+        <snapshotRepository>
+            <id>rdc-snapshots</id>
+            <url>https://packages.aliyun.com/maven/repository/2211645-snapshot-8hgfr3/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+
+</project>

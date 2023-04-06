@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
+<!--xxx:  xmlns:表示默认命名空间-->
+<!--xxx:  targetNamespace:表示文档中定义的元素来自什么命名空间-->
+<!--xxx:  elementFormDefault=qualified:表示要求xml文档的每个元素都要指定命名空间-->
+<!--xxx:  attributeFormDefault=unqualified:表示要求xml文档的每个元素的属性，不需要指定命名空间-->
+<!--xxx:  xmlns:xsd:表示xsd的命名空间定义来自w3-->
+<xsd:schema xmlns="http://www.automannn.com/schema/atm"
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="http://www.automannn.com/schema/atm"
+            elementFormDefault="qualified"
+            attributeFormDefault="unqualified">
+
+    <xsd:element name="atmBean">
+        <xsd:complexType>
+            <xsd:attribute name="name" use="required" type="xsd:string"></xsd:attribute>
+            <xsd:attribute name="isSingleton" type="xsd:boolean" default="false"></xsd:attribute>
+            <xsd:attribute name="description" type="xsd:string" default="automannn's practice demo."></xsd:attribute>
+
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:element name="refer">
+        <xsd:complexType>
+            <xsd:attribute name="bean" type="xsd:string"></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+
+
+
+
+
+</xsd:schema>
