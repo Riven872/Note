@@ -1,0 +1,17 @@
+spring:
+  profiles:
+    active: test
+  cloud:
+    nacos:
+      config:
+        server-addr: localhost:8848
+        file-extension: yaml
+        enabled: true
+        refresh-enabled: true
+        namespace: f11ff651-3b95-4cf2-acc1-0a0e90d95fbb
+logging:
+  level:
+    org:
+      springframework:
+        core: debug
+#        cloud: trace

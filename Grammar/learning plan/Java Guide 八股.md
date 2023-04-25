@@ -505,4 +505,145 @@
 
     
 
+
+### 10、Volatile
+
+1. 重排序
+    1. 指令重排序主要是为了优化单线程程序的执行速度，但是由于多线程场景下线程执行顺序的乱序执行可能会导致各种问题。
+    2. 如在双端检索单例模式中，如果不用 Volatile 修饰单例，那么可能会因为重排序导致已经给单例分配了空间，但是没来得及初始化，就让其他线程返回了未初始化的单例，从而造成异常。
+2. 可见性
+    1. 同样的在双端检索单例模式中，如果禁止了重排序，可以顺利的让单例初始化完成，但是如果没有刷新回主内存，其他线程拿到的只能是未初始化的副本，因此 Volatile 修饰单例也可以让其发生变化时及时刷新到主内存让所有线程知晓。
+    2. 注：可以借助`synchronized` 、`volatile` 以及各种 `Lock` 实现可见性，其他情况下不会刷新局部变量到主内存
+3. 非原子性
+    1. 假如 i 初始值为 0 且有 Volatile 修饰，`i ++`  执行时，线程 A 从主内存中读取到 i 的值 0 到本线程，此时还没有进行自加时，线程 B 也从主内存中读取到 i 的值 0 到本线程，然后对 i 进行自加，将结果 1 刷新到主内存中，此时线程 A 对 i 进行修改，因为 i 已经拿到了，不需要从主内存中重新拿，因此会对 0 进行自加，然后将结果 1 刷新到主内存中，从而因为非原子性的问题造成数据不一致。
+    2. 因此只有线程读取 Volatile 变量时，才会强制读取主内存的值，如果已经读取过了，Volatile 变量再发生修改则不会回过头去重写读取，即“过期不候”。
+
+
+
+### 11、原子类
+
+1. 底层用到了 CAS 修改，利用了 CPU 的原子操作指令，比如 x86 架构的 CMPXCHG 指令，因此操作是原子性的
+2. CAS 算法涉及三个操作数：内存位置（V）、预期原值（A）和新值（B）。当需要更新这个内存位置的值时，CAS 首先读取当前的值，然后比较内存位置的值和预期原值，如果它们相等，就使用新值更新内存位置的值。如果不相等，则说明这个内存位置的值已经被其他线程更新，此时 CAS 操作将失败，需要重试。
+3. 以 `AtomicInteger` 为例，`incrementAndGet()` 方法使用了一个无限循环，每次循环时首先通过 `get()` 方法获取当前的值，然后计算下一个值。如果当前值和预期值相等，就调用 `compareAndSet()` 方法来尝试更新 value 属性的值，如果更新成功，就返回下一个值，否则就继续循环尝试更新。
+4. 引用类型原子类
+    1. 通过引用类的构造方法，原子更新某一整个类（不是更新类里的某一个字段）。
+    2. `AtomicStampedReference`：原子更新带有版本号的引用类型。该类将整数值与引用关联起来，可用于解决原子的更新数据和数据的版本号，可以解决使用 CAS 进行原子更新时可能出现的 ABA 问题。
+    3. `AtomicMarkableReference`：原子更新带有标记的引用类型。用来解决是否修改过，将状态戳简化为 T / F
+
+
+
+### 12、ThreadLocal
+
+1. 本地线程的变量实际上是存放在 ThreadLocalMap 中，并不是在 ThreadLocal 上，ThreadLocal 只是 ThreadLocalMap 的封装，用来传递变量。ThreadLocal 类中可以通过 `Thread.currentThread()` 获取到当前线程的对象，并通过 `getMap(Thread t)` 访问到该线程的 ThreadLocalMap 对象
+
+2. **`ThreadLocal` 实例通过 `ThreadLocalMap` 对象与当前线程建立关联的底层结构**：`<Thread, Entry<ThreadLocal, Object>>`。即每一个线程有独立的 Entry，这个 Entry 中以 ThreadLocal 实例对象为 key，该 ThreadLocal 实例对象中存放的值为 value。（其中 `Entry<ThreadLocal, Object>` 称为 `ThreadLocalMap`，因此实际上数据存放在 ThreadLocalMap 中）
+
+3. 每个 `ThreadLocal` 实例只能存放一个值，如果需要存放多个值，可以创建多个 `ThreadLocal` 实例。每个 `ThreadLocal` 实例对应一个变量，所以多个 `ThreadLocal` 实例就可以对应多个变量。
+
+4. 因此要取值时，除了指定哪个 Thread 的同时，还要指定是哪个 ThreadLocal 实例
+
+    ```java
+    ThreadLocal<UserDTO> localA = new ThreadLocal<>();
+    ThreadLocal<String> localB = new ThreadLocal<>();
     
+    // 设置值
+    localA.set(new UserDTO("name", 12));
+    localB.set("value");
+    
+    // 获取值
+    Thread currentThread = Thread.currentThread();// 获取当前线程
+    ThreadLocalMap threadLocalMap = ThreadLocal.get(currentThread);// 获取当前线程中所有的 threadLocalMap
+    if (threadLocalMap != null) {
+        String value = (String) threadLocalMap.get(localB);// 通过指定的 ThreadLocal 得到其中的值
+        // localB.get() 也可以直接通过指定的 ThreadLocal 取出其中存放的值
+        System.out.println(value); // 输出 "value"
+    }
+    ```
+
+5. **内存泄露**
+
+    1. **ThreadLocalMap（`Entry<ThreadLocal, Object>`）**中使用的 key 为 ThreadLocal 是弱引用，而 value 为 Object 是强引用。因此，如果 ThreadLocal 没有被外部强引用的情况下，GC 时 key 会被清理掉，但是 value 不会被清理，这样 ThreadLocalMap 中就会出现 key 为 null 的 Entry。假如我们不做任何措施的话，value 永远无法被 GC 回收，这个时候就可能会产生内存泄露。
+    2. 实际在使用时，调用 `set()`、`get()`、`remove()` 方法的时候，会清理掉 key 为 null 的记录。使用完 `ThreadLocal`方法后，最好手动调用`remove()`方法，清空该 `ThreadLocal` 实例中的值
+    3. 系统设计 key 为弱引用是防止 ThreadLocalMap 中的 **key** 造成内存泄露（**ThreadLocal  使用频率低，会自动 GC 防止内存泄露**）
+    4. 系统设计 value 为强引用是防止 ThreadLocalMap 中的 **value** 造成内存泄露（**object 使用频率高，只能手动清理防止内存泄露**）
+
+6. **为什么 ThreadLocalMap 中的 key 设计为弱引用**
+
+    1. ThreadLocal 的使用周期可能很短，如果不使用弱引用，那么即使 ThreadLocal 不再使用，其对应的 ThreadLocalMap 中的 Entry 仍然会存在，并且会一直占用内存，导致内存泄漏。
+    2. ThreadLocalMap 使用弱引用作为 key，当 ThreadLocal 对象没有被其他强引用引用时，ThreadLocal 对象就会被垃圾回收掉，对应的 entry 也会被清除掉，从而避免内存泄漏问题。
+
+7. **为什么 ThreadLocalMap 中的 value 设计为强引用**
+
+    1. 因为 ThreadLocal 中存储的值可能会被频繁地读写，如果将 value 设计成弱引用，那么在读取或写入值时，需要每次都创建新的弱引用对象，这样会导致频繁的对象创建和回收，进而导致性能下降。
+    2. 因此 ThreadLocalMap 中的 value 通常是设计成强引用的，由程序员自己负责清理对应的值。
+
+8. **实际应用-链路追踪**
+
+    1. 当请求发送到服务 A 时，服务端生成一个类似`UUID`的`traceId`字符串，将此字符串放入当前线程的`ThreadLocal`中，在调用服务 B 时，将`traceId`写入到请求的`Header`中，服务 B 在接收请求时会先判断请求的`Header`中是否有`traceId`，如果存在则写入自己线程的`ThreadLocal`中。
+    2. 这样生成的 `traceId`字符串就会变成一条链路，追踪请求从开始到结束的链路
+    3. 同样的也可以用在 RPC 或者 OpenFeign 远程调用的跟踪
+
+
+
+
+
+### 13、AQS
+
+1. 能简单且高效地构造出应用广泛的大量的锁和同步器，如 `ReentrantLock`，`Semaphore`，`ReentrantReadWriteLock`，`SynchronousQueue`等
+2. **原理**
+    1. 如果请求的临界资源是空闲的，则将该临界资源的线程设置为当前有效的工作线程，并将该临界资源设置为锁定状态
+    2. 如果请求的临界资源被占用，则由 AQS 利用 CLH 队列锁机制将暂时获取不到锁的线程加入到队列中
+    3. CLH 队列是逻辑上的双向队列链表，AQS 将每个请求临界资源的线程封装成该队列的一个结点（Node）来实现锁的分配。一个结点表示一个线程，保存着线程的引用、当前结点在队列中的状态及其前驱后继
+
+
+
+### 14、线程安全的并发容器
+
+1. HashMap：ConcurrentHashMap
+    1. 在进行读操作时(几乎)不需要加锁，而在写操作时通过锁分段技术只对所操作的段加锁而不影响客户端对其它段的访问。
+2. List：CopyOnWriteArrayList
+    1. 读取时完全不用加锁，写入时也不会阻塞读操作，是因为当 List 需要被修改的时候，并不修改原有内容，**而是对原有数据进行一次复制**，将修改的内容写入副本。写完之后，再将修改完的副本替换原来的数据。
+    2. 写入时加了锁，保证了同步，避免了多线程写的时候会 copy 出多个副本出来。
+3. LinkedList：ConcurrentLinkedQueue
+    1. 阻塞队列：加锁实现
+    2. 非阻塞队列：CAS 实现
+
+
+
+### 15、IO 模型
+
+1. **BIO (Blocking I/O)**
+
+    1. 属于同步阻塞 IO 模型
+    2. 应用程序发起 read 系统调用后，会一直阻塞，直到内核把数据拷贝到用户空间
+    3. 无法应对高并发的场景
+
+2. ### NIO (Non-blocking I/O)
+
+    1. 属于同步非阻塞 IO 模型。
+
+    2. 应用程序会一直发起 read 系统调用，在内核没有准备好数据时，期间会通过轮询操作查询数据是否准备完成而避免一直阻塞
+
+    3. 等待数据从内核空间拷贝到用户空间的这段时间内，线程才会阻塞，等待内核把数据拷贝到用户空间，
+
+    4. 不断轮询也会消耗 CPU 资源
+
+    5. **I / O 多路复用**
+
+        1. 属于 NIO 非阻塞，用来改善不断轮询的情况，通过减少无效的系统调用，减少了对 CPU 的消耗
+
+        2. 线程首先发起 select / poll / epoll 系统调用，询问内核数据是否已经就绪
+
+        3. 内核数据准备完成后，用户线程再发起 read 调用，调用过程中才会阻塞（即数据从内核 -> 用户）
+
+            > - select 调用：内核提供的系统调用，它支持一次查询多个系统调用的可用状态。几乎所有的操作系统都支持。
+            > - epoll 调用 ：linux 2.6 内核，属于 select 调用的增强版本，优化了 IO 的执行效率。
+
+        4. Java NIO 中，使用 selector 作为多路复用器。selector 可以注册多个通道，并通过轮询的方式检查这些通道上是否有事件发生。当有事件发生时，**先经过 selector 收集**，然后 selector 返回对应的 selectionKey，应用程序根据事件类型进行相应的处理
+
+        5. selector 通过一个线程管理同时管理多个通道，而不需要为每个通道创建一个独立的线程，从而减少了线程的创建和上下文切换开销，提高了系统的性能和资源利用率。
+
+3. **AIO (Asynchronous I/O)**
+
+    1. 属于异步非阻塞 IO 模型
+    2. 基于事件和**回调**机制实现的，也就是应用操作之后会直接返回，不会堵塞在那里，当后台处理完成，操作系统会通知相应的线程进行后续的操作。
