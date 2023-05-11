@@ -1214,3 +1214,22 @@
 
 1. Redis Cluster 是一个典型的分布式系统，分布式系统中的各个节点需要相互通信，使用的是 Gossip 协议，每个 Redis 节点中都维护了一份集群的状态信息
 2. 利用 Gossip 通信，可以实现各个节点的健康检测、故障转移、自动切换等
+
+
+
+## 四、Spring 框架
+
+### 1、Spring
+
+#### Bean 的生命周期
+
+1. **读取配置文件中的 Bean**：**BeanDefinitionReader** 读取 Bean 的配置信息（如XML等），将读取到每个 Bean 的配置信息使用 BeanDefinition 表示，同时注册到相应的 BeanDefinitionRegistry 中
+2. **自定义修改 Bean 信息**：之后会有 BeanFactory 的后置处理器，即实现 **BeanFactoryPostProcessor** 的类，自定义修改 BeanDefinition 中的信息（此时Bean已经注册好了，现在做的只是修改已经注册好的Bean的信息）
+3. **Bean 开始实例化**：通过反射或 CGLIB 完成
+4. **Bean 实例化完成后**：触发回调检测该 Bean 实现了哪个 Aware 接口，如实现了 BeanNameAware 子接口的可以获取到 Bean 的名称并 setBeanName。即根据 BeanDefinition 中的信息，使用 Aware 接口的实现类获取并 set，然后填充 Bean 的属性和依赖
+5. **Bean 依赖注入完毕后**：执行 BeanPostProcessor 后置处理器，该接口有两个方法 postProcessBeforeInitialization 和 postProcessAfterInitialization，分别是在 Bean 初始化前和初始化后执行。
+6. **Bean 初始化前**：执行 Bean 后置处理器的 postProcessBeforeInitialization 用来完成指定 Bean 的定制初始化任务
+7. **Bean 开始初始化**：postProcessBeforeInitialization 执行完毕后，开始执行 Bean 的初始化方法，此时如果实现了 InitializingBean 接口和 自定义了 init-method 方法，则在 Bean 初始化期间执行其方法
+8. **Bean 初始化结束**：执行 Bean 后置处理器的 postProcessAfterInitialization，执行初始化之后的任务
+9. **Bean 开始使用**
+10. **Bean 销毁**：容器关闭时，上下文销毁，如果实现了 DisposableBean 接口，则执行对应的 destroy 方法，如果自定义了 destory-method，则执行对应的自定义销毁方法
