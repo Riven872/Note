@@ -902,34 +902,38 @@
     1. 在当前读下，读取的是数据最新的版本，会对读取到的数据加锁
 3. ##### InnoDB 对 MVCC 的实现
     - `MVCC` 的实现依赖于：**隐藏字段、Read View、undo log**。在内部实现中，`InnoDB` 通过数据行的 `DB_TRX_ID` 和 `Read View` 来判断数据的可见性，如不可见，则通过数据行的 `DB_ROLL_PTR` 找到 `undo log` 中的历史版本。每个事务读到的数据版本可能是不一样的，在同一个事务中，用户只能看到该事务创建 `Read View` 之前已经提交的修改和该事务本身做的修改
-1. ###### 内置的隐藏字段
+4. ##### 内置的隐藏字段
     1. 在内部，InnoDB 存储引擎为每行数据添加了三个隐藏字段
     2. `DB_TRX_ID（6字节）`：表示最后一次插入或更新该行的事务 id。此外，`delete` 操作在内部被视为更新，只不过会在记录头 `Record header` 中的 `deleted_flag` 字段将其标记为已删除
     3. `DB_ROLL_PTR（7字节）`： 回滚指针，指向该行的 `undo log` 。如果该行未被更新，则为空
     4. `DB_ROW_ID（6字节）`：如果没有设置主键且该表没有唯一非空索引时，`InnoDB` 会使用该 id 来生成聚簇索引
-    2. ###### ReadView（快照）
-        1. 主要是用来**做可见性判断**，里面保存了 “当前对本事务不可见的其他活跃事务”
-        2. `m_low_limit_id`：目前出现过的最大的事务 ID+1，即下一个将被分配的事务 ID。大于等于这个 ID 的数据版本均不可见
-        3. `m_up_limit_id`：活跃事务列表 `m_ids` 中最小的事务 ID，如果 `m_ids` 为空，则 `m_up_limit_id` 为 `m_low_limit_id`。小于这个 ID 的数据版本均可见
-        4. `m_ids`：`Read View` 创建时其他未提交的活跃事务 ID 列表。创建 `Read View`时，将当前未提交事务 ID 记录下来，后续即使它们修改了记录行的值，对于当前事务也是不可见的。`m_ids` 不包括当前事务自己和已提交的事务（正在内存中）
-        5. `m_creator_trx_id`：创建该 `Read View` 的事务 ID
-    3. ###### undo log
-        1. undo log 在 MVCC 中的作用是，当读取记录时，若该记录被其他事务占用或当前版本对该事务不可见，则可以通过 undo log 读取之前的版本数据，以此实现非锁定读
-        2. **`insert undo log`** ：指在 `insert` 操作中产生的 `undo log`。因为 `insert` 操作的记录只对事务本身可见，对其他事务不可见，故该 `undo log` 可以在事务提交后直接删除。不需要进行 `purge` 操作（与 MVCC 关系不大，因此不做讨论）
-        3. **`update undo log`** ：`update` 或 `delete` 操作中产生的 `undo log`。该 `undo log`可能需要提供 `MVCC` 机制，因此不能在事务提交时就进行删除。提交时放入 `undo log` 链表，等待 `purge线程` 进行最后的删除。
-        4. 不同事务或者相同事务的对同一记录行的修改，会使该记录行的 `undo log` **成为一条链表，链首就是最新的记录**，链尾就是最早的旧记录。
-    4. ###### 数据可见性算法
-        1. 在 `InnoDB` 存储引擎中，创建一个新事务后，执行每个 `select` 语句前，都会创建一个快照（Read View），**快照中保存了当前数据库系统中正处于活跃（没有 commit）的事务的 ID 号**。其实简单的说保存的是系统中当前不应该被本事务看到的其他事务 ID 列表（即 m_ids）。当用户在这个事务中要读取某个记录行的时候，`InnoDB` 会将该记录行的 `DB_TRX_ID` 与 `Read View` 中的一些变量及当前事务 ID 进行比较，判断是否满足可见性条件
-    5. ###### RC 和 RR 隔离级别下 MVCC 的差异
-        1. 在 RC 隔离级别下的 **`每次select`** 查询前都生成一个`Read View 快照` (m_ids 列表)
-        2. 在 RR 隔离级别下只在事务开始后 **`第一次select`** 数据前生成一个`Read View 快照`（m_ids 列表）
-    
-    6. ###### MVCC + Next-key-Lock 解决幻读
-        1. `InnoDB`存储引擎在 RR 级别下通过 `MVCC`和 `Next-key Lock` 来解决幻读问题
-        2. 执行普通 SELECT，此时会以 MVCC 快照读的方式读取数据
-            1. 在快照读的情况下，RR 隔离级别只会在事务开启后的第一次查询生成 `Read View` ，并使用至事务提交。所以在生成 `Read View` 之后其它事务所做的更新、插入记录版本对当前事务并不可见，实现了可重复读和防止快照读下的 “幻读”
-        3. 执行 `select...for update/lock in share mode`、`insert`、`update`、`delete` 等当前读
-            1. 在当前读下，读取的都是最新的数据，如果其它事务有插入新的记录，并且刚好在当前事务查询范围内，就会产生幻读！`InnoDB` 使用 `Next-key Lockopen in new window` 来防止这种情况。当执行当前读时，会锁定读取到的记录的同时，锁定它们的间隙，防止其它事务在查询范围内插入数据。只要我不让你插入，就不会发生幻读
+
+5. ##### ReadView（快照）
+    1. 主要是用来**做可见性判断**，里面保存了 “当前对本事务不可见的其他活跃事务”
+    2. `m_low_limit_id`：目前出现过的最大的事务 ID+1，即下一个将被分配的事务 ID。大于等于这个 ID 的数据版本均不可见
+    3. `m_up_limit_id`：活跃事务列表 `m_ids` 中最小的事务 ID，如果 `m_ids` 为空，则 `m_up_limit_id` 为 `m_low_limit_id`。小于这个 ID 的数据版本均可见
+    4. `m_ids`：`Read View` 创建时其他未提交的活跃事务 ID 列表。创建 `Read View`时，将当前未提交事务 ID 记录下来，后续即使它们修改了记录行的值，对于当前事务也是不可见的。`m_ids` 不包括当前事务自己和已提交的事务（正在内存中）
+    5. `m_creator_trx_id`：创建该 `Read View` 的事务 ID
+
+6. ##### undo log
+    1. undo log 在 MVCC 中的作用是，当读取记录时，若该记录被其他事务占用或当前版本对该事务不可见，则可以通过 undo log 读取之前的版本数据，以此实现非锁定读
+    2. **`insert undo log`** ：指在 `insert` 操作中产生的 `undo log`。因为 `insert` 操作的记录只对事务本身可见，对其他事务不可见，故该 `undo log` 可以在事务提交后直接删除。不需要进行 `purge` 操作（与 MVCC 关系不大，因此不做讨论）
+    3. **`update undo log`** ：`update` 或 `delete` 操作中产生的 `undo log`。该 `undo log`可能需要提供 `MVCC` 机制，因此不能在事务提交时就进行删除。提交时放入 `undo log` 链表，等待 `purge线程` 进行最后的删除。
+    4. 不同事务或者相同事务的对同一记录行的修改，会使该记录行的 `undo log` **成为一条链表，链首就是最新的记录**，链尾就是最早的旧记录。
+
+7. ##### 数据可见性算法
+    1. 在 `InnoDB` 存储引擎中，创建一个新事务后，执行每个 `select` 语句前，都会创建一个快照（Read View），**快照中保存了当前数据库系统中正处于活跃（没有 commit）的事务的 ID 号**。其实简单的说保存的是系统中当前不应该被本事务看到的其他事务 ID 列表（即 m_ids）。当用户在这个事务中要读取某个记录行的时候，`InnoDB` 会将该记录行的 `DB_TRX_ID` 与 `Read View` 中的一些变量及当前事务 ID 进行比较，判断是否满足可见性条件
+
+8. ##### RC 和 RR 隔离级别下 MVCC 的差异
+    1. 在 RC 隔离级别下的 **`每次select`** 查询前都生成一个`Read View 快照` (m_ids 列表)
+    2. 在 RR 隔离级别下只在事务开始后 **`第一次select`** 数据前生成一个`Read View 快照`（m_ids 列表）
+
+9. ##### MVCC + Next-key-Lock 解决幻读
+    1. `InnoDB`存储引擎在 RR 级别下通过 `MVCC`和 `Next-key Lock` 来解决幻读问题
+    2. 执行普通 SELECT，此时会以 MVCC 快照读的方式读取数据
+        1. 在快照读的情况下，RR 隔离级别只会在事务开启后的第一次查询生成 `Read View` ，并使用至事务提交。所以在生成 `Read View` 之后其它事务所做的更新、插入记录版本对当前事务并不可见，实现了可重复读和防止快照读下的 “幻读”
+    3. 执行 `select...for update/lock in share mode`、`insert`、`update`、`delete` 等当前读
+        1. 在当前读下，读取的都是最新的数据，如果其它事务有插入新的记录，并且刚好在当前事务查询范围内，就会产生幻读！`InnoDB` 使用 `Next-key Lockopen in new window` 来防止这种情况。当执行当前读时，会锁定读取到的记录的同时，锁定它们的间隙，防止其它事务在查询范围内插入数据。只要我不让你插入，就不会发生幻读
 
 
 
@@ -1233,3 +1237,137 @@
 8. **Bean 初始化结束**：执行 Bean 后置处理器的 postProcessAfterInitialization，执行初始化之后的任务
 9. **Bean 开始使用**
 10. **Bean 销毁**：容器关闭时，上下文销毁，如果实现了 DisposableBean 接口，则执行对应的 destroy 方法，如果自定义了 destory-method，则执行对应的自定义销毁方法
+
+#### Spring 中的事务
+
+1. ##### 事务传播行为
+
+    1. 事务传播行为是为了解决业务层方法之间互相调用的事务问题，当事务方法被另一个事务方法调用时，必须指定事务应该如何传播。
+    2. 若同一类中其他没有 `@Transactional` 注解方法内部调用有 `@Transactional` 注解的方法，有`@Transactional` 注解的方法的事务会失效。这是由于`Spring AOP`代理的原因造成的，因为只有当 `@Transactional` 注解的方法在类以外被调用的时候，Spring 事务管理才生效。
+
+2. ##### @Transactional(propagation= Propagation.REQUIRED)
+
+    1. 如果当前没有事务，就创建一个新事务，如果当前存在事务，就加入该事务，也是默认的设置
+
+    2. ```java
+        @Transactional(propagation= Propagation.REQUIRED)
+        public void methodA(){
+        	methodB();
+            // do something
+        }
+        
+        @Transactional(propagation= Propagation.REQUIRED)
+        public void methodB(){
+            // do something
+        }
+        ```
+
+    3. 首先调用 A 方法，根据 A 方法的传播机制为 REQUIRED，因为当前没有事务，因此创建一个新的事务。内部再调用 B 方法，且 B 方法的传播机制为 REQUIRED，而且此时已经有 A 方法的事务了，因此加入到 A 的事务中。即二者同属一个事务，一个方法触发异常则全部方法都会回滚
+
+3. ##### @Transactional(propagation= Propagation.SUPPORTS)
+
+    1. 如果当前存在事务，就加入该事务，如果当前不存在事务，就以非事务执行
+
+    2. ```java
+        @Transactional(propagation= Propagation.REQUIRED)
+        public void methodA(){
+        	methodB();
+            // do something
+        }
+        
+        @Transactional(propagation= Propagation.SUPPORTS)
+        public void methodB(){
+            // do something
+        }
+        ```
+
+    3. 首先调用 A 方法，根据 A 方法的传播机制为 REQUIRED，因为当前没有事务，因此创建一个新的事务。内部再调用 B 方法，且 B 方法的传播机制为 SUPPORTS，而且此时已经有 A 方法的事务了，因此加入到 A 的事务中。
+
+    4. 如果直接调用 B 方法，此时没有事务的话，B 方法会以非事务的方式运行
+
+4. ##### @Transactional(propagation= Propagation.MANDATORY)
+
+    1. 如果当前存在事务，就加入该事务，如果当前不存在事务，就抛出异常
+
+    2. ```java
+        @Transactional(propagation= Propagation.REQUIRED)
+        public void methodA(){
+        	methodB();
+            // do something
+        }
+        
+        @Transactional(propagation= Propagation.MANDATORY)
+        public void methodB(){
+            // do something
+        }
+        ```
+
+    3. 首先调用 A 方法，根据 A 方法的传播机制为 REQUIRED，因为当前没有事务，因此创建一个新的事务。内部再调用 B 方法，且 B 方法的传播机制为 MANDATORY，而且此时已经有 A 方法的事务了，因此加入到 A 的事务中。
+
+    4. 如果直接调用 B 方法，此时没有事务，B 方法会直接抛出异常
+
+5. ##### @Transactional(propagation= Propagation.REQUIRES_NEW)
+
+    1. 创建新事务，无论当前存不存在事务，都创建新事务
+
+    2. ```java
+        @Transactional(propagation= Propagation.REQUIRED)
+        public void methodA(){
+            // do something pre
+        	methodB();
+            // do something post
+        }
+        
+        @Transactional(propagation= Propagation.REQUIRES_NEW)
+        public void methodB(){
+            // do something
+        }
+        ```
+
+    3. 首先调用 A 方法，根据 A 方法的传播机制为 REQUIRED，因为当前没有事务，因此创建一个新的事务。内部再调用 B 方法，且 B 方法的传播机制为 REQUIRES_NEW，无论现在有没有事务，会新建一个 B 事务，而且是一个独立的事务。当 A 方法发生异常时，只会回滚 A 方法。同样的 B 方法发生异常时，也只会回滚 B 方法。互不影响
+
+6. ##### @Transactional(propagation= Propagation.NOT_SUPPORTED)
+
+    1. 以非事务方式执行操作，如果当前存在事务，就把当前事务挂起
+
+    2. ```java
+        @Transactional(propagation= Propagation.REQUIRED)
+        public void methodA(){
+        	methodB();
+            // do something
+        }
+        
+        @Transactional(propagation= Propagation.NOT_SUPPORTED)
+        public void methodB(){
+            // do something
+        }
+        ```
+
+    3. 首先调用 A 方法，根据 A 方法的传播机制为 REQUIRED，因为当前没有事务，因此创建一个新的事务。内部再调用 B 方法，且 B 方法的传播机制为 NOT_SUPPORTED，B 方法不会加入到事务当中。因此当 B 抛出异常时，不会发生回滚。但方法 A 内抛出异常时，会进行回滚，因为方法 A 的传播机制为 REQUIRED，有自己的事务
+
+7. ##### @Transactional(propagation= Propagation.NEVER)
+
+    1. 以非事务方式执行操作，如果当前存在事务，则抛出异常
+    2. 不解释了，这个简单
+
+8. ##### @Transactional(propagation= Propagation.NESTED)
+
+    1. 如果当前存在事务，则在嵌套事务内执行。如果当前没有事务，则按 REQUIRED 属性执行
+
+    2. ```java
+        @Transactional(propagation= Propagation.REQUIRED)
+        public void methodA(){
+            // do something pre
+        	methodB();
+            // do something post
+        }
+        
+        @Transactional(propagation= Propagation.NESTED)
+        public void methodB(){
+            // do something
+        }
+        ```
+
+    3. 首先调用 A 方法，根据 A 方法的传播机制为 REQUIRED，因为当前没有事务，因此创建一个新的事务，并执行 pre。内部再调用 B 方法，且 B 方法的传播机制为 NESTED，且当前已经有事务，因此在事务内创建内部事务，并设置回滚点，当内部事务提交或发生异常回滚时，继续执行方法 A 的 post。
+
+    4. 外部事务如果回滚，相应的内部事务也会回滚，因为外部事务的回滚点在内部事务的创建时间之前。但如果内部事务发生回滚，则只会影响自身，不会影响到外部事务
