@@ -1396,4 +1396,166 @@
 
 1. ##### @RequestParam
 
-2. 
+    1. 用于接收 URL 地址传参，即接收表单形式的键值对传参
+
+    2. 当请求参数名与形参参数名一致时，框架会自动进行映射赋值
+
+    3. 当请求参数名与形参参数名不一致时，需要 `@RequestParam` 注解绑定请求参数名
+
+    4. 如请求 URL 为 `http://localhost:8080/delete?name=guanzhi&age=20`
+
+        ```java
+        @GetMapping("/delete")
+        public String delete(@RequestParam("name") String userName, String age) {
+            // todo
+        }
+        
+        @PostMapping("/delete")
+        public String delete(@RequestParam("name") String userName, String age) {
+            // todo
+        }
+        ```
+
+2. ##### @PathVariable
+
+    1. 用于接收包含在请求路径中的参数
+
+    2. 通过 `@PathVariable` 可以将 URL 中占位符 {} 参数绑定到控制器处理方法的形参中
+
+    3. 当占位符中参数与形参名称一致时不需要指定参数名称
+
+    4. 当占位符中参数与形参名称不一致时需要指定具体参数名称
+
+    5. 如请求 URL 为 `http://localhost:8080/get/guanzhi/20`
+
+        ```java
+        @GetMapping("/get/{name}/{age}")
+        public String delete(@PathVariable("name") String userName, @PathVariable int age) {
+            // todo
+        }
+        ```
+
+3. ##### @RequestBody
+
+    1. 用于接收请求体中是 Json 类型的数据，请求数据格式为 `application/json`
+
+    2. 如请求 URL 为 `http://localhost:8080/save`
+
+    3. ```java
+        /**
+        请求体中的数据为
+        {
+            "name":"观止",
+            "age":18
+        }
+        **/
+        
+        @PostMapping("/save")
+        public String save(@RequestBody User user) {
+            // todo
+        }
+        ```
+
+
+
+#### 核心组件
+
+1. `DispatcherServlet`：核心的中央处理器，负责接收请求、分发，并给予客户端响应。
+2. `HandlerMapping`：处理器映射器，根据 uri 去匹配查找能处理的 `Handler` ，并会将请求涉及到的拦截器和 `Handler` 一起封装。
+3. `HandlerAdapter`：处理器适配器，根据 `HandlerMapping` 找到的 `Handler` ，适配执行对应的 `Handler`。
+4. `Handler`：请求处理器，处理实际请求的处理器。
+5. `ViewResolver`：视图解析器，根据 `Handler` 返回的逻辑视图 / 视图，解析并渲染真正的视图，并传递给 `DispatcherServlet` 响应客户端
+
+
+
+#### 工作流程
+
+1. 客户端（浏览器）发送请求，`DispatcherServlet` 拦截请求
+2. `DispatcherServlet` 根据请求信息调用 `HandlerMapping`，HandlerMapping 根据 URI 去匹配查找能够处理的 `Handler`（即 Controller 控制器），并会将请求涉及到的拦截器和 `Handler` 一起封装
+3. `DispatcherServlet` 调用 `HandlerAdapter` 适配器执行 `Handler`
+4. `Handler` 完成对用户请求的处理后，会返回一个 `ModelAndView` 对象给 `DispatcherServlet`。其中 `ModelAndView` 包含了数据模型以及相应的视图信息
+5. `ViewResolver` 会根据逻辑 `View` 查找实际的 `View`。
+6. `DispaterServlet` 把返回的 `Model` 传给 `View`（视图渲染）。
+7. 把 `View` 返回给请求者（浏览器）
+
+
+
+#### 拦截器和过滤器
+
+1. ##### 过滤器（Filter）
+
+    1. 在前端控制器 `DispatcherServlet` 之前生效，对请求进行过滤和预处理
+    2. 属于 Servlet 的一部分，也可以在响应返回给客户端之前对响应进行处理
+    3. 用来实现一些与请求与响应相关的**通用处理逻辑**，如日志记录、安全认证等
+
+2. ##### 拦截器（Interceptor）
+
+    1. 在前端控制器 `DispatcherServlet` 处理请求过程中生效，对请求进行拦截、预处理和后处理
+    2. 是 SpringMVC 的一部分，基于 AOP 实现，用于请求在进入 Controller 之前和 Controller 返回响应之后，执行一些预处理和后处理操作
+    3. 用来实现一些与请求和响应相关的业务逻辑，如鉴权、身份认证
+
+3. 拦截器可以访问 **SpringMVC 流程** 的上下文，如请求信息、响应、处理方法等，对特定业务逻辑进行处理，而过滤器主要用于**所有请求和响应**的预处理和后处理，无法获取到 SpringMVC 的上下文
+
+
+
+### 3、SpringBoot
+
+#### 自动配置
+
+1. ##### @SpringBootApplication（启用自动配置）
+
+    1. @EnableAutoConfiguration：启用 SpringBoot 的自动配置机制
+    2. @ComponentScan：扫描带有 `@Component`、`@Service`、`@Controller` 注解的 Bean，注解会默认扫描当前类同目录下所在包的所有类
+    3. @Configuration：声明为配置类，允许在上下文中注册额外的 Bean 或导入其他的配置类
+
+2. ##### @EnableAutoConfiguration（获取自动配置的信息）
+
+    1. 该注解通过 Spring 提供的 `@import` 注解导入了 `AutoConfigurationImportSelector` 类
+    2. `AutoConfigurationImportSelector` 类中的 `getCandidateConfigurations` 方法会将所有自动配置类的信息以 List 的形式返回，这些配置信息会被 Spring 容器当做 Bean 来处理
+
+3. ##### @Condition（根据获取自动配置的信息进行装配）
+
+    1. 通过 `@ConditionOnClass`、`@ConditionOnBean` 等一系列的相关注解，指定类是否存在于类路径下、容器中是否已经有指定的 Bean 等，进行最后的自动装配
+
+
+
+#### 读取 yaml 配置文件的方法
+
+1. ##### @Value（不推荐）
+
+    ```java
+    // 读取配置文件中，foo.bar 层级下的值
+    @Value("${foo.bar}")
+    String fooBar;
+    ```
+
+2. ##### @ConfigurationProperties 读取并与 Bean 绑定
+
+    ```java
+    // 与配置文件中的 car 属性绑定，并将 car 属性下的所有层级属性作为字段进行定义
+    // 使用时，需要将该类注入到业务类中使用
+    @Component
+    @ConfigurationProperties(prefix = "car")
+    class Car {
+        private String name;
+        private BigDecimal price;
+    }
+    ```
+
+
+
+#### 加载配置文件优先级
+
+1. 根目录 config 文件夹
+    1. bootstrap.yml
+    2. application.yml
+2. resource 文件夹（类路径 classpath）
+    1. config 文件夹中的 bootstrap.yml
+    2. config 文件夹中的 application.yml
+3. resource 文件夹（类路径 classpath）
+    1. bootstrap.yml
+    2. application.yml
+4. bootstrap.yml 和 application.yml 是一定会加载的配置文件，在其中可以指定 spring.profiles.active 的值，指定在加载时同时也加载哪个配置文件
+    1. 如在 application.yml 中指定 spring.profiles.active=dev，那么 application.yml 加载完成之后，会加载 application-dev.yml，并会覆盖 application.yml 中的值
+    2. 如果不在 application.yml 指定 spring.profiles.active 值，而是在 JVM 参数中设定 spring.profiles.active=prod，那么会在 application.yml 加载完成之后，会加载 application-prod.yml，并会覆盖 application.yml 中的值
+
