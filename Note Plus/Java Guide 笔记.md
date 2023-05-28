@@ -1240,12 +1240,16 @@
 
 #### Spring 中的事务
 
-1. ##### 事务传播行为
+1. ##### 基于 AOP
+
+    1. spring 事务其实就是根据事务注解生成代理类，然后在前置增强方法里获取 connection，设置`connection`到`threadlocal`，开启事务。再执行原始方法，最后在后置增强方法中判断有无异常来进行事务回滚或提交，再释放连接。
+
+2. ##### 事务传播行为
 
     1. 事务传播行为是为了解决业务层方法之间互相调用的事务问题，当事务方法被另一个事务方法调用时，必须指定事务应该如何传播。
     2. 若同一类中其他没有 `@Transactional` 注解方法内部调用有 `@Transactional` 注解的方法，有`@Transactional` 注解的方法的事务会失效。这是由于`Spring AOP`代理的原因造成的，因为只有当 `@Transactional` 注解的方法在类以外被调用的时候，Spring 事务管理才生效。
 
-2. ##### @Transactional(propagation= Propagation.REQUIRED)
+3. ##### @Transactional(propagation= Propagation.REQUIRED)
 
     1. 如果当前没有事务，就创建一个新事务，如果当前存在事务，就加入该事务，也是默认的设置
 
@@ -1264,7 +1268,7 @@
 
     3. 首先调用 A 方法，根据 A 方法的传播机制为 REQUIRED，因为当前没有事务，因此创建一个新的事务。内部再调用 B 方法，且 B 方法的传播机制为 REQUIRED，而且此时已经有 A 方法的事务了，因此加入到 A 的事务中。即二者同属一个事务，一个方法触发异常则全部方法都会回滚
 
-3. ##### @Transactional(propagation= Propagation.SUPPORTS)
+4. ##### @Transactional(propagation= Propagation.SUPPORTS)
 
     1. 如果当前存在事务，就加入该事务，如果当前不存在事务，就以非事务执行
 
@@ -1285,7 +1289,7 @@
 
     4. 如果直接调用 B 方法，此时没有事务的话，B 方法会以非事务的方式运行
 
-4. ##### @Transactional(propagation= Propagation.MANDATORY)
+5. ##### @Transactional(propagation= Propagation.MANDATORY)
 
     1. 如果当前存在事务，就加入该事务，如果当前不存在事务，就抛出异常
 
@@ -1306,7 +1310,7 @@
 
     4. 如果直接调用 B 方法，此时没有事务，B 方法会直接抛出异常
 
-5. ##### @Transactional(propagation= Propagation.REQUIRES_NEW)
+6. ##### @Transactional(propagation= Propagation.REQUIRES_NEW)
 
     1. 创建新事务，无论当前存不存在事务，都创建新事务
 
@@ -1326,7 +1330,7 @@
 
     3. 首先调用 A 方法，根据 A 方法的传播机制为 REQUIRED，因为当前没有事务，因此创建一个新的事务。内部再调用 B 方法，且 B 方法的传播机制为 REQUIRES_NEW，无论现在有没有事务，会新建一个 B 事务，而且是一个独立的事务。当 A 方法发生异常时，只会回滚 A 方法。同样的 B 方法发生异常时，也只会回滚 B 方法。互不影响
 
-6. ##### @Transactional(propagation= Propagation.NOT_SUPPORTED)
+7. ##### @Transactional(propagation= Propagation.NOT_SUPPORTED)
 
     1. 以非事务方式执行操作，如果当前存在事务，就把当前事务挂起
 
@@ -1345,12 +1349,12 @@
 
     3. 首先调用 A 方法，根据 A 方法的传播机制为 REQUIRED，因为当前没有事务，因此创建一个新的事务。内部再调用 B 方法，且 B 方法的传播机制为 NOT_SUPPORTED，B 方法不会加入到事务当中。因此当 B 抛出异常时，不会发生回滚。但方法 A 内抛出异常时，会进行回滚，因为方法 A 的传播机制为 REQUIRED，有自己的事务
 
-7. ##### @Transactional(propagation= Propagation.NEVER)
+8. ##### @Transactional(propagation= Propagation.NEVER)
 
     1. 以非事务方式执行操作，如果当前存在事务，则抛出异常
     2. 不解释了，这个简单
 
-8. ##### @Transactional(propagation= Propagation.NESTED)
+9. ##### @Transactional(propagation= Propagation.NESTED)
 
     1. 如果当前存在事务，则在嵌套事务内执行。如果当前没有事务，则按 REQUIRED 属性执行
 
@@ -1371,3 +1375,25 @@
     3. 首先调用 A 方法，根据 A 方法的传播机制为 REQUIRED，因为当前没有事务，因此创建一个新的事务，并执行 pre。内部再调用 B 方法，且 B 方法的传播机制为 NESTED，且当前已经有事务，因此在事务内创建内部事务，并设置回滚点，当内部事务提交或发生异常回滚时，继续执行方法 A 的 post。
 
     4. 外部事务如果回滚，相应的内部事务也会回滚，因为外部事务的回滚点在内部事务的创建时间之前。但如果内部事务发生回滚，则只会影响自身，不会影响到外部事务
+
+10. ##### Spring 事务失效的情况
+
+    1. 方法没有被 Spring 管理，即该类没有放在 IOC 容器中
+    2. 事务方法没有声明为 public：Spring 事务默认使用基于代理的 AOP 来管理事务，而代理只能拦截公共的方法。如果事务方法没有声明为 public，则事务将不会生效。但如果是公共方法内部嵌套调用没有标注 `@Transactional` 的非公共方法，外部的事务正常生效。
+    3. 事务方法内部调用问题：**在同一个类中**，一个事务方法内部调用另一个事务方法，事务将失效。这是因为Spring的事务是基于AOP代理实现的，默认情况下，代理对象无法拦截自身内部调用的方法。
+    4. 异常被捕获和处理：Spring 默认情况下，只有在事务方法抛出未捕获的异常时，事务才会回滚。如果在事务方法内部捕获并处理了异常，事务将继续进行提交，而不会回滚。
+    5. 事务方法没有被正确配置：在 Spring 中，可以使用 `@Transactional` 注解或 XML 配置来声明事务。如果事务方法没有被正确地注解或配置，事务将不会生效。
+    6. 使用错误的事务传播机制：Spring 事务支持不同的事务传播机制，如 REQUIRED、REQUIRES_NEW、NESTED 等。如果使用了错误的传播机制，事务的行为可能与预期不符，导致事务失效。
+    7. 跨越多个数据源：如果在一个事务中涉及多个数据源，需要使用分布式事务管理机制。如果没有正确配置分布式事务管理器，事务可能无法跨越多个数据源。
+    8. 并发问题：如果多个线程同时访问共享资源并进行修改，可能会引发并发问题。如果事务隔离级别设置不当或未正确处理并发冲突，事务可能会失效。
+
+
+
+
+### 2、Spring MVC
+
+#### 不同类型参数传递与接收
+
+1. ##### @RequestParam
+
+2. 
