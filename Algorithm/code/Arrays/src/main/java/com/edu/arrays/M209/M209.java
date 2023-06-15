@@ -1,4 +1,4 @@
-package com.edu.M209;
+package com.edu.arrays.M209;
 
 /**
  * 209. 长度最小的子数组

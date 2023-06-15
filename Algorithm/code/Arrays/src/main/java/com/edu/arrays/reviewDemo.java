@@ -1,4 +1,4 @@
-package com.edu;
+package com.edu.arrays;
 
 import java.util.ArrayList;
 import java.util.Arrays;

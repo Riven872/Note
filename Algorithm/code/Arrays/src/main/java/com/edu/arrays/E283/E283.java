@@ -1,4 +1,4 @@
-package com.edu.E283;
+package com.edu.arrays.E283;
 
 /**
  * 283. 移动零

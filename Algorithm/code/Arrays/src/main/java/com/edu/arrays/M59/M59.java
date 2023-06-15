@@ -1,4 +1,4 @@
-package com.edu.M59;
+package com.edu.arrays.M59;
 
 import java.util.Arrays;
 

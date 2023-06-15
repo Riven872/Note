@@ -1,4 +1,4 @@
-package com.edu.E69;
+package com.edu.arrays.E69;
 
 /**
  * 69. x 的平方根

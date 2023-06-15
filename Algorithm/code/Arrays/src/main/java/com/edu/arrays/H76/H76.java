@@ -1,4 +1,4 @@
-package com.edu.H76;
+package com.edu.arrays.H76;
 
 import java.util.HashMap;
 

@@ -1,4 +1,4 @@
-package com.edu.E844;
+package com.edu.arrays.E844;
 
 /**
  * 844. 比较含退格的字符串

@@ -1,4 +1,4 @@
-package com.edu.E26;
+package com.edu.arrays.E26;
 
 /**
  * 26. 删除有序数组中的重复项

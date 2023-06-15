@@ -1,4 +1,4 @@
-package com.edu.E977;
+package com.edu.arrays.E977;
 
 import java.util.Arrays;
 

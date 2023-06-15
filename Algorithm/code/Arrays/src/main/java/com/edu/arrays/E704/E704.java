@@ -1,4 +1,4 @@
-package com.edu.E704;
+package com.edu.arrays.E704;
 
 /**
  * 704. 二分查找

@@ -1,4 +1,4 @@
-package com.edu.E367;
+package com.edu.arrays.E367;
 
 /**
  * 367. 有效的完全平方数

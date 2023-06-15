@@ -1,4 +1,4 @@
-package com.edu.M34;
+package com.edu.arrays.M34;
 
 import java.util.Arrays;
 

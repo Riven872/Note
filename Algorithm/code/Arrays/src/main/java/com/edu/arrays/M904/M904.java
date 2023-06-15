@@ -1,7 +1,6 @@
-package com.edu.M904;
+package com.edu.arrays.M904;
 
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  * 904. 水果成篮

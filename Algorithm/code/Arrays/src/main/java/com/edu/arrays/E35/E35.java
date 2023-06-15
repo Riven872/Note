@@ -1,4 +1,4 @@
-package com.edu.E35;
+package com.edu.arrays.E35;
 
 /**
  * 35. 搜索插入位置

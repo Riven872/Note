@@ -1,4 +1,4 @@
-package com.edu.E27;
+package com.edu.arrays.E27;
 
 /**
  * 27. 移除元素

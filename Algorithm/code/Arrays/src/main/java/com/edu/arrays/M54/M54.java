@@ -1,4 +1,4 @@
-package com.edu.M54;
+package com.edu.arrays.M54;
 
 import java.util.ArrayList;
 import java.util.List;
