@@ -1,4 +1,4 @@
-package com.edu.linkedlists.H707.single_;
+package com.edu.linkedlists.M707.single_;
 
 public class MySingleLinkedList {
     /**
