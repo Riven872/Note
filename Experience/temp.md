@@ -52,9 +52,51 @@
 
 
 
+### 6、实现多线程的方式有哪些？
+
+1. 继承 Thread 类创建线程。
+2. 实现 Runnable 接口创建线程。
+3. 通过 Callable 和 FutureTask 创建线程。
+4. 通过线程池创建线程。
+5. Callable 可以使用本身的 `call()` 方法来获取返回值，但是并不灵活。如果直接调用 `call()`，则相当于一次同步调用，并且阻塞在当前位置
+6. FutureTask 是 Future 接口的一个实现，通常使用 Future 来管理异步任务，比如通过线程池执行异步任务时，可以使用 Future 接收该任务：`Future<Integer> future = executorService.submit(callable);` ，并在需要返回值时进行 get 即可，也可以查询该任务的状态是否已经完成。
+7. 因此需要与 FutureTask 需要配合使用，`Future<String> future = new FutureTask<>(callable);`
+
+
+
+### 7、在线程池中，怎么把执行时间不一致的线程按照规定的顺序执行？（多线程编排问题）
+
+1. 首先需要使用 Future 接口的实现类 CompletableFuture 去实现该功能。
+2. CompletableFuture 可以通过 `supplyAsync()` 创建异步任务，并使用 `thenApply()` 在得到上一个异步任务的结果之后执行下一步的操作，也可以通过 `get()` 直接获取该异步任务的结果，或者使用 `handle()` 处理发生的异常。更复杂的还有 `thenCombine()` 等组合多个异步任务的结果。
+3. 可以指定自定义的线程池，如果不指定，则会使用默认的 ForkJoinPool 线程池。
+
+
+
+### 8、ConcurrentHashMap 是如何保证线程安全的？
+
+1. 使用分段锁 + CAS + synchronized 的机制来保证线程安全。
+2. 当 ConcurrentHashMap 在添加或删除元素时，首先使用 CAS 来尝试修改元素，如果 CAS 操作失败，就会使用 synchronized 锁住当前的哈希槽，然后再次尝试修改或删除元素。
+3. 使用 synchronized 时使用了分段机制，只是锁住了当前的哈希槽，并非整个集合，降低了锁的颗粒度。
+4. 而且 ConcurrentHashMap 不允许有 value 为 null 的情况。如果使用 `map.get(key)` 返回了 null 值，是不明确本来就存了一个 null 值进去还是因为没有找到而返回了 null，存在二义性。而 HashMap 在单线程下是不存在这个问题的，所以 HashMap 允许 value 为 null 的情况。
+
+
+
+### 9、ThreadLocal 了解吗？发生内存泄漏的原因？
+
+1. `ThreadLocal` 实例通过 `ThreadLocalMap` 对象与当前线程建立关联的底层结构：`<Thread, Entry<ThreadLocal, Object>>`。即每一个线程有独立的 Entry，这个 Entry 中以 ThreadLocal 实例对象为 key，该 ThreadLocal 实例对象中存放的值为 value。（其中 `Entry<ThreadLocal, Object>` 称为 `ThreadLocalMap`，因此实际上数据存放在 ThreadLocalMap 中）
+2. 其中 ThreadLocal 对象有两处引用：
+    1. 在栈内存中，使用 ThreadLocal 对象方法时，对 ThreadLocal 的引用。（强引用）
+    2. 在堆内存中，ThreadLocalMap 中的 key 对 ThreadLocal 的引用。（弱引用）
+3. 发生 OOM 的两个原因：
+    1. 当栈内存中的 ThreadLocal 引用不再使用，也就是方法结束后这个对象引用就不存在了，但因为还存在着一条引用链导致无法 GC，也就可能导致 OOM。因此设计时采用了弱引用，即这个对象只具有弱引用时，就会被 GC，防止 OOM。
+    2. 但要注意另一个 OOM 的点是：key 虽然是 ThreadLocal 弱引用，可以被 GC，但值是强引用的，会存在 ThreadLocal 被 GC 了，但是 value 依然存在，然后导致 OOM。因此需要每次使用完 ThreadLocal 后，手动调用一下 remove，就会在下一次 GC 时，清理掉失效过期的 Entry。（当然，每次调用 ThreadLocal 的 get、set 时也会清理，但最好还是手动 remove 一下）
+4. 在配合线程池使用时，更需要注意清理 ThreadLocal 内的数据。因为线程池的线程是复用的，而且在 ThreadLocal 中，一个线程对应自己的 Entry。如果上一个线程使用完之后没有清理 ThreadLocal，那么再次使用这个线程时，就会出现数据错乱的情况，仍然具有上一个线程所具有的数据。因此需要及时清理，也可以预防 OOM 的问题。
+
+
+
 ## MySQL
 
-### 1、B+树，和B树有什么区别？
+### 1、B+ 树，和 B 树有什么区别？
 
 1. 二者都是 AVL 树的一种，又叫平衡多路查找树。
 2. B 树的所有节点既存放键 key，也存放数据 Data；而 B+ 树只有叶子节点存放 key 和 Data，非叶子节点只存放 Key。因此 B+ 树的任何查找必须从根结点到叶子结点，所以 B+ 树的检索顺序是稳定的。
@@ -65,7 +107,7 @@
 
 
 
-### 2、说一说MySQL一条SQL语句的执行过程？
+### 2、说一说 MySQL 一条 SQL 语句的执行过程？
 
 1. 连接：使用连接器，与 MySQL 服务器建立连接，并查询是否有权限。
 2. 解析：由解析器进行语法和语义的分析，并生成解析树。如查询的是什么表、哪个字段、条件是什么。
@@ -99,6 +141,14 @@
     5. 事务 ID 大的可以看到事务 ID 小的事务的变更结果，因此拿到一条可见的记录后就作为快照读返回。
     6. 如果没有可见的事务，就去 undo log 中根据快照链表依次取快照，并进行事务 ID 的对比判断，直到找到可见的事务并返回快照读，如果找不到就返回空。
 6. 总结：undo log 用来保存历史快照，Read View 用来判断哪个快照是可见的。
+
+
+
+### 5、QPS、TPS、RT 代表什么？
+
+1. QPS：每秒接收了多少请求。（流量进来了多少）
+2. TPS：接收请求之后实际每秒能处理多少。（服务端响应了多少）
+3. RT：响应时间，response time。
 
 
 
