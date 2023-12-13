@@ -1,7 +1,9 @@
 package com.example.strategydemo.edu.impl;
 
 import com.example.strategydemo.edu.IEvent;
+import org.springframework.stereotype.Component;
 
+@Component
 public class BarEventService implements IEvent {
     @Override
     public void eventHandler(String json) {
