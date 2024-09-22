@@ -1,0 +1,6 @@
+<application>
+  <component name="NotificationConfiguration" showBalloons="false">
+    <notification groupId="gittoolbox.branch.cleanup" displayType="TOOL_WINDOW" shouldLog="false" />
+    <notification groupId="IDE and Plugin Updates" displayType="NONE" />
+  </component>
+</application>

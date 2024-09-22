@@ -1,0 +1,9 @@
+<templateSet group="测试">
+  <template name="riven" value="/**&#10; * @author riven&#10; * @date $date$ $time$&#10; * @description $END$&#10; */" description="" toReformat="false" toShortenFQNames="true">
+    <variable name="date" expression="date()" defaultValue="" alwaysStopAt="true" />
+    <variable name="time" expression="time(HH:mm:ss)" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="JAVA_CODE" value="true" />
+    </context>
+  </template>
+</templateSet>
