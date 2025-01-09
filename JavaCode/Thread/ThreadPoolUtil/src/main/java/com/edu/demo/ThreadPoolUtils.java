@@ -87,10 +87,10 @@ public class ThreadPoolUtils {
     }
 
     /**
-     * completableFuture 任务
+     * completableFuture 有返回值的任务
      *
-     * @param task
-     * @param <T>
+     * @param task 异步任务
+     * @param <T>  携带指定返回值类型的 completableFuture 任务
      * @return
      */
     public static <T> CompletableFuture<T> submitCompletableFutureTask(Callable<T> task) {
@@ -118,6 +118,32 @@ public class ThreadPoolUtils {
         });
 
         // 此时 completableFuture 已经携带了异步执行的结果，包括异常
+        return completableFuture;
+    }
+
+    /**
+     * completableFuture 无返回值的任务
+     *
+     * @param task 异步任务
+     * @return 携带 void 的 completableFuture 任务
+     */
+    public static CompletableFuture<Void> submitCompletableFutureTask(Runnable task) {
+        CompletableFuture<Void> completableFuture = new CompletableFuture<>();
+
+        getThreadPool().submit(() -> {
+            try {
+                // 执行无返回值的任务
+                task.run();
+                // 手动显性地完成一个 CompletableFuture，标记任务完成
+                // 由于是 Void，用 null 表示没有返回值
+                completableFuture.complete(null);
+            } catch (Exception e) {
+                // 以异常的方式完成 CompletableFuture
+                completableFuture.completeExceptionally(e);
+            }
+        });
+
+        // 返回已经携带了异步执行状态的 CompletableFuture
         return completableFuture;
     }
 }
