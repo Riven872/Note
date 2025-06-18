@@ -312,6 +312,155 @@
 
 
 
+### 11、Tomcat 服务器部署的后端应用 JVM 参数示例
+
+```properties
+-Djava.util.logging.config.file=/usr/local/tomcat/conf/logging.properties, 
+
+-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager,
+
+-Duser.timezone=GMT+08,
+
+-Xms6720m,
+
+-Xmx6720m,
+
+-XX:+UseContainerSupport,
+
+-XX:NewSize=1792m,
+-XX:MaxNewSize=1792m,
+-XX:MaxDirectMemorySize=448m,
+-XX:MetaspaceSize=224m,
+-XX:MaxMetaspaceSize=448m,
+-XX:+UseParNewGC,
+-XX:+UseCMSInitiatingOccupancyOnly,
+-XX:+UseGCLogFileRotation,
+-XX:NumberOfGCLogFiles=10,
+-XX:GCLogFileSize=1024M,
+-XX:+ExplicitGCInvokesConcurrent,
+-XX:-UseGCOverheadLimit,
+-XX:+UseConcMarkSweepGC,
+-XX:CMSInitiatingOccupancyFraction=65,
+-XX:CMSFullGCsBeforeCompaction=2,
+-XX:+PrintGCDetails,
+-XX:+PrintGCTimeStamps,
+-XX:+PrintGCDateStamps,
+-javaagent:/usr/local/apm_agent/apm.agent.bootstrap.jar,
+-Xloggc:/data/logs/skynet-tcwireless.java.member.center.job/tcwireless.java.member.center.job_gc.log,
+-Dapm.applicationName=tcwireless.java.member.center.job,
+-Dapm.agentId=10.206.106.237-127af09,
+-Dapm.env=product,
+-Djava.endorsed.dirs=/usr/local/tomcat/endorsed,
+-Dcatalina.base=/usr/local/tomcat,
+-Dcatalina.home=/usr/local/tomcat,
+-Djava.io.tmpdir=/usr/local/tomcat/temp
+```
+
+1. -Djava.util.logging.config.file=/usr/local/tomcat/conf/logging.properties
+
+    1. 作用：指定 JVM 使用 Tomcat 的日志配置文件路径
+    2. 原因：在配置文件中可以设置 Tomcat 服务器输出的日志格式、级别和输出目标，确保日志符合生产环境的要求（如按日滚动存储）
+    3. 替代参数：使用 Log4j2 日志管理系统时，可以设置为 -Dlog4j.configurationFile=配置文件路径
+
+2. -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+
+    1. 作用：启用 Tomcat 自定义的日志管理器（支持每个 WebApp 独立日志）
+    2. 原因：避免类加载器冲突，适应 Tomcat 多应用部署
+
+3. -Duser.timezone=GMT+08
+
+    1. 作用：强制设置 JVM 时区为东八区
+    2. 原因：解决容器内时区不一致导致的日志时间错误，也是 new Date() 时的取值参数，默认 UTC 可能会与预期显示的不符
+    3. 替代参数：使用挂载的宿主机的时间文件 /etc/localtime
+
+4. **-Xms6720m（值设置存在调优空间）**
+
+    1. 作用：设置 JVM 堆内存初始大小，也是 JVM 启动时立即向操作系统申请的内存量
+
+    2. 原因：
+
+        1. 避免堆扩容停顿：
+            1. JVM 启动后，如果需要更多堆内存，会触发扩容机制，扩容过程需要暂停应用线程（GC 的 STW 机制）来分配和可能的内存布局调整。生产环境追求低延迟或稳定吞吐量的应用，一般将-Xms跟-Xmx设置相同的值，避免运行时堆扩容带来的停顿
+        2. 提高启动性能：
+            1. 虽然申请大内存本身耗时，但避免了后续多次小额扩容操作带来的其他开销（如 GC 停顿、系统调用），对于需要快速达到稳定性能的应用可以设置较大的初始堆
+        3. 内存预算利用：
+            1. 物理服务器或容器通常有固定的内存配额，如果应用启动后很快使用接近最大堆的内存，那么一开始就是申请到最大堆可以确保内存立即可用，并允许操作系统更早的进行内存优化
+        4. 固定大小堆配置策略：
+            1. 简化了内存管理，消除了堆大小波动带来的不确定性
+
+    3. 替代参数：
+
+        1. 设置更小的初始堆参数：
+            1. 可以节省资源，因为申请内存不多，启动内存需求不高，因此启动速度快，适用于开发环境或测试环境这种对偶尔停顿不敏感、内存受限的环境（如低配服务器、低配容器）
+        2. 完全不设置：
+            1. 有默认值，但很小，会导致频繁扩容和 GC
+        3. 大小堆设置不同：
+            1. 根据应用的冷启动内存需求和稳定运行内存需求来设置，如 `-Xms2048m -Xmx6720m`。应用启动后，堆会在 2GB 到 6.56GB 之间自动伸缩。这平衡了启动资源占用和避免频繁扩容的需求。
+        4. 基于容器内存限制自动计算
+            1. 结合 `-XX:+UseContainerSupport`，JVM 可以自动根据容器（如 Docker）设置的内存限制 (`-m`) 来计算一个合适的初始堆大小（通常是容器内存限制的一部分）。但显式设置 `-Xms` 和 `-Xmx` 仍然是更精确控制的首选。
+
+    4. 初始堆内存的值是怎么确定的（以 8G 内存容器为例）
+
+        1. 容器总内存限制
+            1. 假设容器启动时设置了 -m 8192m（8GB），这是容器可使用的最大内存上限
+        2. 扣除关键的非堆内存
+            1. 元空间 ：由 `-XX:MetaspaceSize=224m` 和 `-XX:MaxMetaspaceSize=448m` 控制。按最大值 `448m` 预留。
+            2. 直接内存：由 `-XX:MaxDirectMemorySize=448m` 限制。按 `448m` 预留。
+            3. JVM自身开销：JIT 编译缓存、GC 数据结构、本地库等，通常预留 `200-500m`。取 `300m` 估算
+            4. 线程栈：每个线程约 `1MB`（默认 `-Xss1m`）。假设应用有 `200` 个线程，预留 `200m`。
+                1. 注：该线程是 OS 层面的物理资源，非线程池中的应用线程，可以通过 jstck 或 Linux 的命令查看峰值时刻的活跃线程数，如总线程数 ≈ Tomcat maxThreads + 最大连接池大小 + GC 线程数 + 其他框架线程
+            5. 非堆小计：`448m (MetaspaceMax) + 448m (DirectMem) + 200m (Threads) + 300m (JVM Overhead) ≈ 1396m`
+        3. 扣除操作系统/其他进程开销
+            1. 容器内可能运行监控 agent、日志采集器等小进程，加上 OS 内核开销。预留 `200-400m`。取 `300m`。
+        4. 计算可用堆内存
+            1. 可用堆内存 ≈ 容器总内存 - 非堆内存 - OS/其他开销
+            2. `8192m - 1396m - 300m = 6496m ≈ 6496m`
+            3. 因此 JVM 设置的堆内存约为 6496，可以适当缩小放大，但相应的会压缩和释放其他非堆内存的空间
+
+    5. 内存分配过多被 Linux OOM Killer 终止 JVM 应用
+
+        1. 容器内通常不只有 JVM 应用，当容器内的所有应用存在内存泄露或其他情况超过容器限定内存时，Linux 内核会调用 OOM Killer 终止内存消耗最多的程序，而容器内消耗最多的肯定是 JVM 应用，所以会被 shut down
+        2. JVM 自己不会报 OOM Error，只在堆/元空间/直接内存达到 JVM 自设上限时抛出，因为内存泄露等情况是应用之外的情况，JVM 并不知情
+        3. 因此 JVM 应用申请内存过多可能会压缩其他应用的内存，其实与 JVM 本身无关，关键在于要预留足够缓冲的内存
+
+    6. GC 行为与堆大小设置的关系
+
+        1. 堆大小 (`-Xms`/`-Xmx`) 直接影响垃圾收集的频率、时长和模式
+
+        2. GC 频率
+
+            1. 堆越大，对象填满堆的速度越慢，Young GC、Full GC 间隔就越长，反之堆空间会更快的被填满，触发更频繁的 GC
+
+        3. 单次 GC 停顿时间（STW）
+
+            1. 堆越大，需要扫描、移动的对象就更多，特别是 Full GC，但并发类型的收集器和 G1 受影响较小，反之每次处理的存活对象集更小
+
+        4. 分代比例设置的影响
+
+            1. 由参数得知：
+
+                1. ```bash
+                    -XX:NewSize=1792m      # 新生代初始大小
+                    -XX:MaxNewSize=1792m   # 新生代最大大小
+                    -Xmx6720m              # 堆最大 = 6720m
+                    ```
+
+            2. 新生代比例 = 1792m / 6720m ≈ 26.7%（通常建议 30%~50%，这里偏低）
+
+            3. Young GC
+
+                1. 若新生代过小 → 对象更快填满 Eden 区 → Young GC 频繁，但每次停顿短。
+                2. 若新生代过大 → Young GC 间隔长，但单次需处理对象多 → 停顿时间可能增加。
+
+            4. Full GC
+
+                1. 新生代过小会导致存活对象大小 > Survivor 区容量，根据规则直接晋升到老年代，也就意味着部分存活对象年龄未到阈值，而因为 Survivor 区溢出造成了过早晋升到老年代
+                2. 结合  `-XX:CMSInitiatingOccupancyFraction=65` 参数可知当老年代占用 ≥65% 时触发 CMS GC，若老年代过快填满（因晋升过多），会频繁触发 CMS，甚至退化为 Full GC
+
+
+
+
+
 ## MySQL
 
 ### 1、B+ 树，和 B 树有什么区别？
