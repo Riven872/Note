@@ -328,52 +328,78 @@
 -XX:+UseContainerSupport,
 
 -XX:NewSize=1792m,
+
 -XX:MaxNewSize=1792m,
+
 -XX:MaxDirectMemorySize=448m,
+
 -XX:MetaspaceSize=224m,
+
 -XX:MaxMetaspaceSize=448m,
+
 -XX:+UseParNewGC,
+
 -XX:+UseCMSInitiatingOccupancyOnly,
+
 -XX:+UseGCLogFileRotation,
+
 -XX:NumberOfGCLogFiles=10,
+
 -XX:GCLogFileSize=1024M,
+
 -XX:+ExplicitGCInvokesConcurrent,
+
 -XX:-UseGCOverheadLimit,
+
 -XX:+UseConcMarkSweepGC,
+
 -XX:CMSInitiatingOccupancyFraction=65,
+
 -XX:CMSFullGCsBeforeCompaction=2,
+
 -XX:+PrintGCDetails,
+
 -XX:+PrintGCTimeStamps,
+
 -XX:+PrintGCDateStamps,
+
 -javaagent:/usr/local/apm_agent/apm.agent.bootstrap.jar,
+
 -Xloggc:/data/logs/skynet-tcwireless.java.member.center.job/tcwireless.java.member.center.job_gc.log,
+
 -Dapm.applicationName=tcwireless.java.member.center.job,
+
 -Dapm.agentId=10.206.106.237-127af09,
+
 -Dapm.env=product,
+
 -Djava.endorsed.dirs=/usr/local/tomcat/endorsed,
+
 -Dcatalina.base=/usr/local/tomcat,
+
 -Dcatalina.home=/usr/local/tomcat,
+
 -Djava.io.tmpdir=/usr/local/tomcat/temp
 ```
 
-1. -Djava.util.logging.config.file=/usr/local/tomcat/conf/logging.properties
+1. `-Djava.util.logging.config.file=/usr/local/tomcat/conf/logging.properties`
 
     1. 作用：指定 JVM 使用 Tomcat 的日志配置文件路径
     2. 原因：在配置文件中可以设置 Tomcat 服务器输出的日志格式、级别和输出目标，确保日志符合生产环境的要求（如按日滚动存储）
     3. 替代参数：使用 Log4j2 日志管理系统时，可以设置为 -Dlog4j.configurationFile=配置文件路径
 
-2. -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+2. `-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager`
 
     1. 作用：启用 Tomcat 自定义的日志管理器（支持每个 WebApp 独立日志）
     2. 原因：避免类加载器冲突，适应 Tomcat 多应用部署
 
-3. -Duser.timezone=GMT+08
+3. `-Duser.timezone=GMT+08`
 
     1. 作用：强制设置 JVM 时区为东八区
     2. 原因：解决容器内时区不一致导致的日志时间错误，也是 new Date() 时的取值参数，默认 UTC 可能会与预期显示的不符
     3. 替代参数：使用挂载的宿主机的时间文件 /etc/localtime
 
-4. **-Xms6720m（值设置存在调优空间）**
+4. **`-Xms6720m（值设置存在调优空间）`**
 
     1. 作用：设置 JVM 堆内存初始大小，也是 JVM 启动时立即向操作系统申请的内存量
 
@@ -456,6 +482,295 @@
 
                 1. 新生代过小会导致存活对象大小 > Survivor 区容量，根据规则直接晋升到老年代，也就意味着部分存活对象年龄未到阈值，而因为 Survivor 区溢出造成了过早晋升到老年代
                 2. 结合  `-XX:CMSInitiatingOccupancyFraction=65` 参数可知当老年代占用 ≥65% 时触发 CMS GC，若老年代过快填满（因晋升过多），会频繁触发 CMS，甚至退化为 Full GC
+
+5. **`-Xmx6720m`**
+
+    1. 作用：设置 JVM 堆内存的最大大小为 6720 MB (约 6.56 GB)。这是 JVM 堆内存可以增长到的上限
+    2. 原因：
+        1. 资源限制与稳定性：生产环境为了追求稳定性和可预测性，避免了运行时堆调整带来的停顿
+        2. 内存容量规划：分析应用在高峰流量、大数据处理或长时间运行后的老年代稳定占用值和堆峰值使用量
+        3. 防止堆自动扩容风险： 如果 -Xmx 设置过大（远超实际需求），虽然不会立即占用物理内存（按需提交），但存在风险
+            1. 掩盖内存泄漏： 应用即使存在缓慢的内存泄漏，也可能因堆空间充足而长时间不触发 OOM，导致问题在后期爆发
+            2. Full GC 停顿更长： 如果堆过大且发生 Full GC（尤其是 Serial Old / Parallel Old），STW 停顿时间会显著增加
+            3. 碎片化问题加剧： 对于 CMS 这类不压缩的收集器，大堆更容易产生内存碎片，增加晋升失败风险
+    3. 替代参数：
+        1. 设置更大或更小的 -Xmx 与设置 -Xms 原理相同，通常影响扩容时的性能波动、内存空间不足时 GC 停顿
+        2. 基于容器限制自动设置： 结合 -XX:+UseContainerSupport 和 -XX:MaxRAMPercentage (如 -XX:MaxRAMPercentage=75.0)，JVM 会根据容器内存限制自动计算 -Xmx (例如容器 8GB * 75% = 6GB)。这提供了灵活性，但不如显式设置精确可控
+    4. 合理的最大堆限制空间值是严谨计算和监控验证的结果，目标是：
+        1. 满足应用峰值内存需求 + 安全缓冲
+        2. 避免不必要的内存浪费
+        3. 防止因堆过大导致 GC 停顿过长或碎片化加剧
+        4. 确保在容器限制内安全运行，规避 OOM Killer
+
+6. `-XX:+UseContainerSupport`
+
+    1. 作用：启用 JVM 对容器化环境（如 Docker/Kubernetes）的内存和 CPU 资源限制的自动感知，主要用在容器化部署场景
+    2. 原因：
+        1. 历史问题：
+            1. 旧版 JVM 在容器中运行时，内存限制识别错误，如 容器限制 `-m 8GB`，但 JVM 仍读取宿主机物理内存（如 64GB） 计算默认堆大小，导致`-Xmx` 默认值可能高达宿主机内存的1/4（16GB）→ 严重超容器限制 → 被 OOM Killer 杀死
+        2. 开启 JVM 对容器的感知机制：
+            1. JVM 会正确读取到容器的内存限制和 CPU 配额，而非错误读取到宿主机的内存和 CPU 核心数
+    3. 替代参数：
+        1. 不设置参数：
+            1. 极度危险，可能导致 JVM 误判导致堆过大突破容器限制被 Linux 终止进程、导致 JVM 误判核心数过多而实际核心数只有容器限制导致 CPU 资源争抢造成应用卡顿
+        2. JDK10+ 会默认添加该参数
+    4. 容器化部署时申请内存超限问题：
+        1. JVM 启动时，根据 -Xms 申请的初始堆大小逐步扩容逐步超限，当堆扩容达到容器限制点时，Linux 内核会拒绝超限对 OS 申请更多的物理内存，并调用 OOM Killer 杀死得分最高的进程。因此容器设置的最大内存只是一个标尺，当 JVM 向 OS 申请物理内存超过这个标尺时，实际是 Linux 内核进行处理
+    5. 非容器化环境部署时该参数的有效性问题：
+        1. JVM 不依赖环境变量，而是直接读取 Linux 系统中 cgroup 文件系统中的内存限制值，该值合法且小于物理内存时，视为当前环境为容器
+        2. JVM 检查挂载点（cgroup）并验证该值的有效性，从而进行判断是宿主机还是容器
+        3. 如果 JVM 启动时识别到当前环境不是容器，会静默跳过该参数，回退到宿主机的资源检测，自动适配宿主机资源。因此无论是否容器环境，都可以添加该参数以确保容器和非容器环境下的行为一致性，且无需写两套配置参数
+
+7. `-XX:NewSize=1792m`
+
+    1. 作用：设置 JVM 堆内存中新生代的初始大小为 1792 MB (约 1.75 GB)。这是 JVM 启动时分配给新生代的内存。
+    2. 原因：
+        1. 启动优化：应用启动初期通常会创建大量短期对象（类加载、初始化缓存等）。较大的初始新生代可以减少启动期间的 Young GC 频率，加速启动过程。
+        2. 性能预热：避免应用在初始阶段因新生代过小而频繁触发 Young GC，影响服务预热期的性能稳定性
+        3. 与 -XX:MaxNewSize=1792m 配合： 这两个参数值相同，意味着新生代大小固定为 1792m，与堆的固定策略 (-Xms=-Xmx) 一致，追求运行时无伸缩停顿。
+    3. 替代参数：
+        1. 仅设置 `-Xmn`：`-Xmn1792m` 等价于同时设置 `-XX:NewSize=1792m -XX:MaxNewSize=1792m`。代码更简洁，但功能相同。
+        2. 设置动态新生代（不推荐用于 CMS）： 不显式设置 `NewSize/MaxNewSize`，允许 JVM 根据 `-XX:NewRatio`（默认值 2，即新生代:老年代=1:2）自动调整新生代大小。但在固定堆中追求确定性，显式设置更优。
+        3. 增大新生代比例：若监测到频繁晋升，可能是因为新生代过小导致 Survivor 区溢出，导致未到实际年龄就晋升，此时可适当提高新生代比例，相当于扩大 Survivor 区
+        4. 使用 `-XX:NewRatio`：如 `-XX:NewRatio=3`（新生代:老年代=1:3，即新生代占堆 25%）。但不如绝对值精确，尤其在固定堆场景。
+    4. CMS 无法有效支持动态新生代
+        1. 当新生代需要动态扩容时，需要同步移动老年代的对象，但 CMS 使用清除算法导致的内存碎片过多，没有足够的连续空间，从而无法安全移动对象，进而导致晋升失败触发 Full GC 被迫整理空间
+        2. 频繁的调整内存空间需要全局 STW，违背 CMS 高并发低停顿的设计理念
+        3. 因此使用 CMS 时，一般新生代的初始和最大空间一致，从而减少动态扩容导致的全局停顿。
+        4. 也可以使用 G1 收集器 + 动态新生代配合
+
+8. `-XX:MaxNewSize=1792m`
+
+    1. 作用：设置新生代内存的最大大小为 1792 MB。这是新生代可以扩容到的上限。
+    2. 原因：
+        1. 固定新生代策略：与 `-Xms=-Xmx` 理念一致，将 `-XX:NewSize` 和 `-XX:MaxNewSize` 设为相同值，完全锁定新生代大小。
+        2. 彻底消除伸缩停顿：JVM 不会在运行时调整新生代大小，避免了因调整 Eden/Survivor 边界产生的潜在 STW 停顿。
+        3. 行为完全可预测：GC 日志分析、性能调优基于恒定的新生代结构，排除了动态变化带来的干扰
+        4. 与 `-XX:NewSize` 的协同：若只设 `-XX:MaxNewSize` 不设 `-XX:NewSize`，新生代初始值可能为 JVM 计算的较小值（需扩容）
+    3. 替代参数：
+        1. 新生代动态调整：设置 `-XX:MaxNewSize > -XX:NewSize`（如 `-XX:NewSize=1024m -XX:MaxNewSize=2048m`）。JVM 可能在运行时根据 GC 反馈（晋升率、回收效率）在范围内调整新生代大小。更自适应，但是调整可能引入短暂停顿，增加分析复杂性。
+    4. 新生代大小如何确定
+        1. 根据监控查看指标
+            1. YoungGC 频率过高，则说明新生代不够用，需要扩大新生代
+            2. Survivor 区利用率持续偏高，如长期 > 90%，则需要扩大 Survivor 区或整体新生代
+            3. 对象晋升速率过快，则需要增加新生代减少过早晋升
+            4. 老年代增速过快，同样需要增加新生代减少过早晋升达到老年代的间隔
+
+9. `-XX:MaxDirectMemorySize=448m`
+
+    1. 作用：设置直接内存的最大上限为 448 MB，直接内存是 JVM 堆外内存
+    2. 原因：
+        1. 防止内存泄露失控：
+            1. 默认上限为 -Xmx 的值，第三方库可能直接吃满  -Xmx 拖垮容器
+        2. 容器内存配额控制：
+            1. 根据 Netty 链接数、JNI 本地库或安全缓冲设置的值
+    3. 替代参数：
+        1. 不设置：极度危险，默认值可能会出现堆外内存泄露拖垮容器
+        2. 缩小值：无 Netty 等无 NIO 框架时可以适当缩小
+        3. 框架级控制：Netty 可以适配  `-Dio.netty.maxDirectMemory`（优先级更高）
+
+10. `-XX:MetaspaceSize=224m`
+
+    1. 作用：设置元空间的初始容量阈值为 224MB，其中元空间存储 JVM 加载的类元数据（如 Class、Method 等）
+    2. 原因：
+        1. 启动优化：
+            1. 中型应用（约 5000+ 类）启动时元数据约 200MB，如果启动时超过了限定的阈值会触发 Full GC 尝试回收并自动扩容
+            2. 因此 224MB 可以提供缓冲，避免启动阶段频繁触发 Full GC
+        2. 默认值不足：
+            1. 默认约 20MB，会过早的触发 Full GC
+    3. 替代参数：
+        1. 不设置：如上会有默认值问题
+        2. 更小值：适用于微服务应用，根据应用大小决定
+
+11. `-XX:MaxMetaspaceSize=448m`
+
+     1. 作用：设置元空间的绝对容量上限为 448MB，是元空间不可超越的硬限制
+     2. 原因：
+         1. 容器内存安全
+             1. 当扩容超过该值时，会直接抛出 OOM:Metaspace Error，确保元空间内存不会无限膨胀导致容器 OOM Kill
+         2. 类泄露保护
+             1. 热部署场景下，可能会因为旧类加载器未卸载导致元空间持续增长而出现内存泄露问题
+     3. 替代参数：
+         1. 不设置：元空间无限制增长会吞噬所有系统内存
+         2. 更小值：适用于微服务或无动态类加载场景
+         3. 更大值：适用于大型应用，但过大的内存会压缩堆内存的空间
+
+12. `-XX:+UseParNewGC`
+
+     1. 作用：启用ParNew 垃圾收集器作为新生代的专用收集器。
+     2. 原因：
+         1. 强制启用：
+             1. CMS 要求必须与 ParNew 或 Serial 收集器配队，否则会报 Error
+         2. 性能优化：
+             1. 会比单线程的 Serial 收集器性能高，在多核处理器上会显著缩短 Young GC 的停顿时间
+         3. 线程数控制：
+             1. 多线程的收集器线程是可配置的，默认线程数 = CPU 核数，可以通过 `-XX:ParallelGCThreads=N` 显式指定
+             2. 在容器环境下使用 `-XX:+UseContainerSupport` 会自动按照容器 CPU 配额计算
+     3. 替代参数：
+         1. `-XX:+UseSerialGC`：单线程收集器（仅适合测试/微服务）
+         2. `-XX:+UseParallelGC`：吞吐优先的并行收集器（与 CMS 不兼容）
+         3. 升级到 G1：`-XX:+UseG1GC`（JDK9+ 默认，统一处理新/老代）
+
+13. `-XX:+UseGCLogFileRotation`
+
+     1. 作用：启用GC 日志文件的自动轮转（Rotation）机制。当单个 GC 日志文件达到指定大小时，JVM 会自动创建新文件继续写入，避免单个文件过大。
+     2. 原因：
+         1. 防止磁盘写满：
+             1. 未启用时，GC 日志会持续写入单一的文件，可能会持续增长到数百 GB，占盘磁盘空间导致系统崩溃
+         2. 历史日志保留：
+             1. 故障排查需要追溯历史 GC 行为，如 Full GC 频率突变
+             2. 轮转机制按文件/时间保留多份日志（配合 `-XX:NumberOfGCLogFiles`）
+     3. 替代参数：
+         1. 不启用：
+             1. 生产环境必须使用，否则会出现磁盘写满的情况
+
+14. `-XX:NumberOfGCLogFiles=10`
+
+     1. 作用：定义GC 日志轮转时保留的历史文件数量为 10 个。与 `-XX:+UseGCLogFileRotation` 和 `-XX:GCLogFileSize` 协同工作，实现日志文件的滚动归档。
+     2. 原因：
+         1. 故障回溯周期匹配：
+             1. 假设每日 GC 日志量：常规流量时约 50 MB/小时 × 24 ≈ 1.2 GB/日， 按 `-XX:GCLogFileSize=1024M`（1GB/文件）计算：10 文件 ≈ 10 GB 存储，可覆盖 8 天常规日志
+             2. 超过 10 个时，会删除最旧的日志并生成一个新的日志作为新的轮转
+             3. 根据容器挂载的磁盘和日志大小进行计算轮转归档的个数
+     3. 替代参数：
+         1. 不设置但启用轮转：默认只保留一个历史文件，对生产环境排查问题有极大的阻碍
+
+15. `-XX:GCLogFileSize=1024M`
+
+     1. 作用：设定单个 GC 日志文件的最大体积 为 1024 MB (1 GB)。当文件达到此大小时，触发日志轮转（需配合 `-XX:+UseGCLogFileRotation`）
+     2. 原因：
+         1. 值的设定：
+             1. 确保单文件的日志尽量包含完整的业务场景
+             2. 过大的日志会导致文本文件加载困难
+             3. 大文件持续写入会导致 I/O 性能下降
+             4. 频繁轮转频率平衡，避免频繁轮转导致消耗 CPU 性能影响主业务
+     3. 替代参数：
+         1. 默认值：
+             1. 默认 8KB，会造成每秒轮转上千次，极大的影响磁盘 I/O 性能，导致服务不可用
+
+16. `-XX:+ExplicitGCInvokesConcurrent`
+
+     1. 作用：此参数强制将显式触发的 Full GC（即 `System.gc()` 调用）转为 CMS 并发收集周期，而非默认的 STW（Stop-The-World）Full GC。这是 CMS 调优的核心防御性参数。
+     2. 原因：
+         1. 防止第三方库意外调用显式 GC
+             1. NIO 直接内存回收时清理时会隐式调用 `System.gc()`，如果使用 Full GC 的默认停顿，会因为 STW 而影响正常的业务流程。启用该参数后，任何调用  `System.gc()` 都会转为 CMS 的并发收集周期，而不会产生停顿
+             2. 第三方库如 JDBC 驱动、XML 解析库可能会误调用  `System.gc()`，也是防止意外触发 STW 停顿而启用该参数
+     3. 替代参数：
+         1. `-XX:+DisableExplicitGC` 优先级更高 → `System.gc()` 被忽略 → 直接内存泄漏风险
+
+17. `-XX:-UseGCOverheadLimit（负号标志代表禁用）`
+
+     1. 作用：
+         1. 此参数禁用 JVM 的 GC 开销限制保护机制。默认情况下，当 JVM 检测到超过 98% 的 CPU 时间用于 GC 且回收效率低于 2% 时，会抛出 `OutOfMemoryError: GC Overhead Limit Exceeded` 错误。禁用此机制后，JVM 将继续尝试 GC 直至堆完全耗尽。
+
+     2. 原因：
+         1. 避免误判导致的 OOM：
+             1. 当应用存在大量短期对象时，GC 效率可能短暂的降低，禁用后不会因为临时性的 GC 效率下降就终止应用
+
+         2. 配合 CMS：
+             1. CMS 在并发收集阶段时间虽然长，但是不影响应用线程，而 GC 时间统计包括了后台的并发时间，因此并发期间不应该记入开销时间
+
+     3. 替代参数：
+         1. `-XX:GCTimeLimit=95` (默认98) `-XX:GCHeapFreeLimit=5` (默认2)，调整阈值来应对内存泄露时没有及时检测的风险
+
+18. `-XX:+UseConcMarkSweepGC`
+
+     1. 作用：
+         1. 启用 CMS 垃圾收集器作为老年代的 GC 算法
+
+     2. 原因：
+         1. 与新生代 GC 协调：
+             1. ParNew + CMS 是经典组合
+
+         2. 内存碎片
+             1. CMS 并发模式时无法压缩内存，可搭配使用 `-XX:CMSFullGCsBeforeCompaction=2`（每2次Full GC压缩）
+
+         3. 并发模式失败
+             1. 当对象回收速度 < 对象分配速度时会降级成为 Full GC 强制清理内存碎片，可搭配 `-XX:CMSInitiatingOccupancyFraction=65`（提前触发）
+
+         4. 浮动垃圾
+             1. CMS 并发阶段无法标记浮动对象，产生新的垃圾，可搭配 `-XX:CMSInitiatingOccupancyFraction=65`（预留35%缓冲），
+
+     3. 替代参数：
+         1. 使用 G1 收集器：`-XX:+UseG1GC -XX:MaxGCPauseMillis=200`
+
+19. `-XX:+UseCMSInitiatingOccupancyOnly`
+
+     1. 作用：参数强制 JVM 仅根据老年代内存占用率（`CMSInitiatingOccupancyFraction`的值）触发CMS垃圾回收。禁用 JVM 自行动态调整触发阈值的机制。
+     2. 作用：
+         1. 避免动态调整的不可预测性
+             1. JVM 默认会根据历史 GC 数据动态调整 CMS 触发阈值（可能低于或高于设定值），导致行为不稳定
+         2. 精准控制 Full GC 风险
+             1. 明确在老年代占用 ≥65% 时启动 CMS，预留足够时间完成并发标记（避免并发模式失败）
+         3. 与 `-XX:CMSInitiatingOccupancyFraction=65` 的强制绑定：
+             1. 确保设定的 65% 阈值被严格执行，而非被 JVM 覆盖
+     3. 替代参数：
+         1. 默认：老年代占用增长时，JVM 会动态调整阈值，阈值过低就会过早的触发 CMS 并发收集，GC 过于频繁吞吐量下降；阈值过高会过晚触发 CMS 并发收集，致使并发模式失败降级为 Full GC
+         2. 生产模式必须启动，不允许 JVM 动态调整导致不可控的 GC 行为
+
+20. `-XX:CMSInitiatingOccupancyFraction=65`
+
+     1. 作用：控制 CMS 垃圾收集器在老年代空间占用率达到指定百分比（65%）时启动并发收集周期，提前进行并发收集以免产生 Full GC
+     2. 原因：
+         1. 浮动垃圾预留：
+             1. CMS 并发阶段应用线程仍在运行，会产生新垃圾（浮动垃圾），65% = 100% - 35% 缓冲空间，确保并发周期完成前老年代不会填满。
+
+         2. 避免并发失败：
+             1. 预防因缓冲不足导致 `Concurrent Mode Failure`，此时会退化为 Serial Old 收集器，造成长时间 STW
+
+         3. 内存特征适配：
+             1. 堆总大小 6720m，老年代约 4928m（73%），65% 触发即 3203m 时回收，预留 1725m 缓冲。
+
+     3. 替代参数：
+         1. 默认 92%，可能因为缓冲区不足导致并发周期过程中老年代被填满而触发 Full GC 停顿
+         2. 取值过小会导致 GC 更频繁，吞吐量降低
+         3. 取值过大会导致并发失败的几率增大
+
+21. `-XX:CMSFullGCsBeforeCompaction=2`
+
+     1. 作用：控制 CMS 在执行多少次 Full GC 后触发内存压缩（碎片整理），设置为 2 表示：每 2 次 Full GC 后执行 1 次内存压缩
+     2. 原因：
+         1. CMS 设计原理：
+             1. CMS默认不压缩内存（并发清除阶段只回收空间不整理），内存碎片过多会导致大对象分配失败最终触发 Full GC 进行整理内存碎片操作，进行较长的停顿
+
+         2. 关联风险：
+             1. 碎片累积过多会导致无连续空间导致对象无法分配而提前触发 Full GC（即使老年代未满，但无连续空间继续分配对象）
+
+     3. 替代参数：
+         1. 默认是 0，也就是每次 Full GC 之后都会压缩进行内存碎片整理
+         2. 需要平衡取值，值越大，压缩频率越低，Full GC 次数也就越低，允许内存碎片短期存在，但整理时会更耗时，因此需要监控之后取值
+
+     4. 参数调优：
+         1. 该参数是吞吐量与延迟的权衡。设置为 2 表明优先减少压缩次数，通过`-XX:CMSInitiatingOccupancyFraction=65`预留的空间来容忍短期碎片。
+
+22. `-XX:+PrintGCDetails`
+
+     1. 作用：启用详细垃圾回收日志输出，记录每次GC的完整信息，如各内存区域的变化（Eden/Survivor/Old/Metaspace）、GC 耗时、回收前后内存占用、收集器特定信息（如 CMS 各阶段耗时）
+     2. 原因：
+         1. 生产环境监控：
+             1. 结合`-XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps`提供完整时间戳，输出日志到指定路径
+
+         2. 调优依据：
+             1. 分析`Full GC`频率（检测内存泄漏），识别`concurrent mode failure`（CMS失败事件），验证`CMSInitiatingOccupancyFraction=65`的实际触发点
+
+         3. APM 集成支持：
+             1. 日志供 APM 使用解析，实现 GC 指标可视化监控
+
+     3. 替代参数：
+         1. 使用`-XX:-PrintGCDetails`，关闭日志输出，仅限于在开发测试环境使用
+
+23. `-XX:+PrintGCTimeStamps`
+
+     1. 作用：在GC日志中添加时间戳，记录从JVM启动开始计算的时间偏移量（单位：秒）
+     2. 原因：
+         1. 主要用于 APM 或日志定位时有时间维度的特征进行分析
+
+24. `-XX:+PrintGCDateStamps`
+
+     1. 作用：在GC日志中添加完整的日期时间戳（ISO 8601格式），记录GC事件发生的绝对时间。
+     2. 原因：
+         1. 同上
+
 
 
 
