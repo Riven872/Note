@@ -173,6 +173,21 @@
 
 
 
+### 15、execute 和 submit 的区别
+
+1. execute 只能提交 Runnable 类型的任务，且没有返回值。submit 既可以提交 Runnable 类型的任务，也可以提交 Callable 类型的任务，且有一个 Future 类型的返回值，但当任务类型为 Callable 时，返回值为 null
+
+2. ```java
+    ThreadPoolExecutor threadPool = new ThreadPoolExecutor();// 创建线程池，详细的参数可以看 demo
+    
+    threadPool.execute(task1);// 向线程池提交任务，其中 task1 为 Runnable 类型，返回值为 void
+    threadPool.submit(task2);// 向线程池提交任务，其中 task2 为 Callable<T> 类型，返回值为 Future<T>
+    ```
+
+3. execute 在执行任务时，如果异常不手动捕获则会直接抛出，终止线程执行，线程池会创建新的线程替代，保证配置的线程数不变。而 submit 不会直接抛出异常，而是包装在 Future 中，线程正常执行，只有使用 Future 的 get 方法获取
+
+
+
 ## JVM
 
 ### 1、Java 的堆内存是如何分代的
